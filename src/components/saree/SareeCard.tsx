@@ -1,11 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { PriceLine } from "./PriceLine";
-import { getMediaUrl } from "@/lib/media-url";
+import { getPublicImageUrl } from "@/lib/media-url";
 import type { Saree } from "@/lib/types";
 
 export function SareeCard({ saree }: { saree: Saree }) {
-  const imageUrl = saree.images[0]?.storage_key ? getMediaUrl(saree.images[0].storage_key) : undefined;
+  const imageUrl = saree.images[0]?.storage_key ? getPublicImageUrl(saree.images[0].storage_key) : undefined;
 
   return (
     <Link href={`/saree/${saree.slug}`} className="group block">

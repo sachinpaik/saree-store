@@ -3,8 +3,11 @@ import { Readable } from "stream";
 import * as imageService from "@/modules/images/image.service";
 
 /**
- * MEDIA DELIVERY STRATEGY
- * 
+ * MEDIA DELIVERY (admin / optional fallback only)
+ *
+ * Public storefront MUST NOT depend on this route: use getPublicImageUrl()
+ * and direct R2/CDN URLs so customer image traffic never hits the app server.
+ *
  * This route supports three delivery modes via MEDIA_DELIVERY_MODE env var:
  * 
  * 1. "stream" (default for development):

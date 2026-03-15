@@ -1,4 +1,4 @@
-import { getProductImageUrl } from "@/modules/images/image.service";
+import { getPublicImageUrl } from "@/lib/media-url";
 import { listApprovedProducts, getApprovedProductBySlug } from "./storefront.repository";
 import type { Saree, SareeImage, ProductRow } from "./storefront.types";
 
@@ -58,7 +58,7 @@ export async function getCarouselImageUrls(limit: number): Promise<string[]> {
   for (const s of list) {
     if (!s.show_on_homepage) continue;
     const img = pickHomepageImage(s);
-    if (img?.storage_key && urls.length < limit) urls.push(getProductImageUrl(img.storage_key));
+    if (img?.storage_key && urls.length < limit) urls.push(getPublicImageUrl(img.storage_key));
   }
   return urls;
 }

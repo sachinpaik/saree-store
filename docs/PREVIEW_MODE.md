@@ -56,9 +56,8 @@ The following storefront pages support preview mode:
 - Shows preview bar at top for admins
 
 **Homepage**: `/`
-- File: `src/app/(store)/page.tsx`
-- Shows draft-merged products in preview mode
-- Includes draft changes for carousel and product grid
+- Server: `src/app/(store)/page.tsx` (live data only; cache-friendly)
+- Preview logic is lazy-loaded: `HomePreviewBridge` (dynamic import, no SSR) so public visitors do not load admin/preview code. When an admin has preview enabled, the bridge loads and merges draft data for carousel and grid.
 
 **Collection Page**: `/kanchipuram-silks`
 - File: `src/app/(store)/kanchipuram-silks/page.tsx`

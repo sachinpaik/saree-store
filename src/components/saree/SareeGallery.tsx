@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import type { SareeImage } from "@/lib/types";
-import { getMediaUrl } from "@/lib/media-url";
+import { getPublicImageUrl } from "@/lib/media-url";
 
 const ZOOM_LENS_SIZE = 140;
 const ZOOM_FACTOR = 2.2;
@@ -15,7 +15,7 @@ export function SareeGallery({ images, title }: { images: SareeImage[]; title: s
   const containerRef = useRef<HTMLDivElement>(null);
 
   const list = images.length ? images : [];
-  const currentSrc = list[index] ? getMediaUrl(list[index].storage_key) : "";
+  const currentSrc = list[index] ? getPublicImageUrl(list[index].storage_key) : "";
   const currentAlt = list[index]?.alt_text ?? title;
 
   const handleMouseMove = useCallback(
@@ -110,7 +110,7 @@ export function SareeGallery({ images, title }: { images: SareeImage[]; title: s
                 i === index ? "border-stone-800" : "border-transparent hover:border-stone-300"
               }`}
             >
-              <Image src={getMediaUrl(img.storage_key)} alt={img.alt_text ?? ""} width={56} height={56} className="w-full h-full object-cover" unoptimized />
+              <Image src={getPublicImageUrl(img.storage_key)} alt={img.alt_text ?? ""} width={56} height={56} className="w-full h-full object-cover" unoptimized />
             </button>
           ))}
         </div>

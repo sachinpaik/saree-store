@@ -1,6 +1,6 @@
 # Saree Store
 
-Production-ready e-commerce platform for a saree store. Next.js 14 (App Router), TypeScript, Tailwind CSS, Supabase (Postgres + Storage). Deployable on Vercel.
+Production-ready e-commerce platform for a saree store. Next.js 14 (App Router), TypeScript, Tailwind CSS, Supabase (Postgres + Auth), Cloudflare R2 (images). Optimized for low-cost hosting: public storefront is cache-friendly and uses direct R2/CDN image URLs (no app-server media proxy for customers).
 
 ---
 
@@ -35,7 +35,7 @@ Production-ready e-commerce platform for a saree store. Next.js 14 (App Router),
 │           │                                   │                 │
 │  ┌────────▼─────────────────────────────────▼─────────┐       │
 │  │              Middleware                            │       │
-│  │  • JWT Auth Check   • Admin Route Protection      │       │
+│  │  • Supabase Session • Admin Route Protection      │       │
 │  └───────────────────────┬────────────────────────────┘       │
 │                          │                                     │
 │  ┌───────────────────────▼────────────────────────────┐       │
@@ -50,15 +50,16 @@ Production-ready e-commerce platform for a saree store. Next.js 14 (App Router),
 │    DATA & STORAGE LAYER  │                                     │
 │                          │                                     │
 │  ┌───────────────────────▼────────────────────────────┐       │
-│  │          Storage Abstraction Layer                 │       │
-│  │  • Supabase Provider   • Local Provider            │       │
-│  │  • /api/media/[...key] Route Handler               │       │
+│  │          Storage & Media                            │       │
+│  │  • Cloudflare R2 (images) • Presigned upload        │       │
+│  │  • Public storefront: direct R2/CDN URLs only      │       │
+│  │  • /api/media/[...key] optional (admin/preview)    │       │
 │  └─────────────┬─────────────────────┬────────────────┘       │
 │                │                     │                         │
 │  ┌─────────────▼──────────┐   ┌─────▼──────────────┐         │
-│  │  Supabase Storage      │   │  Postgres DB        │         │
-│  │  • Product Images      │   │  • 12 Tables        │         │
-│  │  • Public Bucket       │   │  • RLS Enabled      │         │
+│  │  Cloudflare R2          │   │  Supabase Postgres │         │
+│  │  • Product Images       │   │  • 12 Tables       │         │
+│  │  • Public bucket / CDN  │   │  • RLS where used  │         │
 │  └────────────────────────┘   └─────────────────────┘         │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -80,66 +81,45 @@ Production-ready e-commerce platform for a saree store. Next.js 14 (App Router),
    │               └─→ Response with data
    │
    └─→ Admin Route (/admin/*)
-       └─→ Middleware checks JWT cookie
-           ├─→ Valid admin JWT → Allow
+       └─→ Middleware checks Supabase session
+           ├─→ Valid session + admin profile → Allow
            │   └─→ Server Component/Action
            │       └─→ Supabase query
            │           └─→ Response
            │
-           └─→ Invalid/Missing JWT → Redirect to /admin/login
-               └─→ Login form submission
-                   └─→ Server Action validates credentials
-                       └─→ Sign JWT + Set cookie
-                           └─→ Redirect to /admin
+           └─→ Invalid/Missing session → Redirect to /admin/login
+               └─→ Login form (Supabase Auth)
+                   └─→ signInWithPassword
+                       └─→ Redirect to /admin
 ```
 
 ### Authentication Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     AUTHENTICATION SYSTEM                        │
+│                     AUTHENTICATION (Supabase Auth)               │
 └─────────────────────────────────────────────────────────────────┘
 
-┌──────────────┐
-│  app_users   │  (Custom auth table)
-│  table       │  • email (unique)
-│              │  • password_hash (bcryptjs)
-└──────┬───────┘  • role (customer | admin)
-       │
-       │ Validate
-       ▼
+┌──────────────────┐     ┌──────────────────┐
+│  auth.users      │     │  profiles         │
+│  (Supabase)      │     │  • user_id        │
+│  • Email/password│     │  • role (admin)   │
+└────────┬─────────┘     └────────┬─────────┘
+         │                        │
+         └────────────┬───────────┘
+                      ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Login Flow                                                  │
-│                                                              │
-│  1. POST /admin/login                                        │
-│     • Email + Password                                       │
-│                                                              │
-│  2. Server Action (auth.ts)                                  │
-│     • Query app_users by email                               │
-│     • Verify password with bcryptjs                          │
-│     • Check role === "admin"                                 │
-│                                                              │
-│  3. Sign JWT (jose library)                                  │
-│     • Payload: { sub, email, role }                          │
-│     • Secret: AUTH_SECRET env var                            │
-│     • Expires: 7 days                                        │
-│                                                              │
-│  4. Set HTTP-only cookie                                     │
-│     • Name: "session"                                        │
-│     • Secure in production                                   │
-│     • SameSite: lax                                          │
-│                                                              │
-│  5. Redirect to /admin                                       │
+│  1. POST /admin/login → Server Action (auth.ts)              │
+│  2. supabase.auth.signInWithPassword({ email, password })   │
+│  3. Session in HTTP-only cookies (Supabase SSR)              │
+│  4. Redirect to /admin                                       │
 └──────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐
 │  Authorization (Middleware)                                  │
-│                                                              │
-│  Every /admin/* request:                                     │
-│  1. Extract JWT from cookie                                  │
-│  2. Verify signature with AUTH_SECRET                        │
-│  3. Check role === "admin"                                   │
-│  4. Allow or redirect to /admin/login                        │
+│  Every /admin/*: Supabase session + profiles.role = admin    │
+│  Allow or redirect to /admin/login                           │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -249,17 +229,15 @@ IMAGE UPLOAD FLOW:
        │
        └─→ revalidatePath()
 
-IMAGE SERVE FLOW:
-  Browser requests <img src="/api/media/abc/xyz.jpg" />
+IMAGE DELIVERY (zero-cost storefront):
+  Public storefront: getPublicImageUrl(storageKey)
        │
-       ▼
-  Route: /api/media/[...key]/route.ts
-       │
-       ├─→ getStorageProvider()
-       │   └─→ supabaseProvider.download()
-       │       └─→ Fetch from Supabase Storage
-       │
-       └─→ Stream response with Content-Type
+       └─→ Direct R2/CDN URL (NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_BASE_URL + key)
+           • No app server involved for customer image views
+           • Requires R2 public bucket or custom domain
+
+  Admin / optional fallback: /api/media/[...key]
+       └─→ Stream or redirect (MEDIA_DELIVERY_MODE); used only when needed
 ```
 
 ---
@@ -425,28 +403,18 @@ interface StorageProvider {
 - **Supabase Provider** (`supabase-provider.ts`): Legacy support
 - **Local Provider** (`local-provider.ts`): File system storage for local dev
 
-**Media URL System**:
-- Images stored with `storage_key` (e.g., `abc123/uuid.jpg`)
-- Served via `/api/media/[...key]` route handler
-- Three delivery modes:
-  - **Stream**: App downloads and streams (works everywhere)
-  - **Redirect**: 302 to Cloudflare CDN URL (zero app bandwidth)
-  - **Hybrid**: Admin=stream, Public=redirect (best for production)
-- Supports range requests for video (future)
-- Automatic Content-Type detection
+**Public storefront image URLs** (zero-cost):
+- Use `getPublicImageUrl(storageKey)` from `lib/media-url.ts`
+- Returns direct R2/CDN URL only; **no** `/api/media` fallback for storefront
+- Requires `NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_BASE_URL` (or server-side `CLOUDFLARE_R2_PUBLIC_BASE_URL`) so customer traffic never hits the app server for images
 
-**Configuration**:
-- Env var: `STORAGE_PROVIDER` (default: `cloudflare-r2`)
-- Delivery mode: `MEDIA_DELIVERY_MODE` (default: `stream`)
-- Custom domain: `CLOUDFLARE_R2_PUBLIC_BASE_URL` (optional, for redirect mode)
+**Admin / optional** `/api/media/[...key]`:
+- Stream or redirect modes for admin preview when needed
+- `MEDIA_DELIVERY_MODE`: stream | redirect | hybrid
 
-**Why Cloudflare R2:**
-- Zero egress costs (vs Supabase Storage ~$0.09/GB)
-- S3-compatible (portable, no vendor lock-in)
-- Global CDN performance
-- Simple custom domain setup
+**Uploads**: Direct browser-to-R2 via presigned PUT URLs (`/api/upload-sign`); files do not go through the app server.
 
-See [STORAGE_MIGRATION.md](STORAGE_MIGRATION.md) for architecture details and migration guide.
+**Why Cloudflare R2:** Zero egress, S3-compatible, global CDN. Set a public base URL (R2.dev or custom domain) so the storefront uses direct image URLs only.
 
 ---
 
@@ -1381,7 +1349,7 @@ All Server Actions are in `src/app/actions/` and use `"use server"` directive.
 | `CLOUDFLARE_R2_ACCESS_KEY_ID` | Yes* | - | R2 API access key (*if using R2) |
 | `CLOUDFLARE_R2_SECRET_ACCESS_KEY` | Yes* | - | R2 API secret key (*if using R2) |
 | `CLOUDFLARE_R2_BUCKET` | Yes* | - | R2 bucket name (*if using R2, e.g., `product-images`) |
-| `CLOUDFLARE_R2_PUBLIC_BASE_URL` | No | - | Custom domain for R2 (e.g., `https://cdn.example.com`) |
+| `CLOUDFLARE_R2_PUBLIC_BASE_URL` | Yes (storefront) | - | R2 public base URL so storefront uses direct image URLs (no /api/media). Use `NEXT_PUBLIC_` prefix for client-visible URLs. |
 | `MEDIA_DELIVERY_MODE` | No | `stream` | Delivery mode (`stream`, `redirect`, `hybrid`) |
 | `MEDIA_CACHE_IMMUTABLE_SECONDS` | No | `31536000` | Cache TTL for immutable keys (1 year) |
 | `MEDIA_CACHE_DEFAULT_SECONDS` | No | `3600` | Cache TTL for other keys (1 hour) |
