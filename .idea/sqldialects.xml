@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20240225000001_initial_schema.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20240225000002_rls_and_auth.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20240225000003_storage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20240225100000_fix_profiles_admin_policy_recursion.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20250225000001_product_images_and_homepage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20250226000001_attribute_definitions.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20250226000002_product_attribute_values.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20250226000003_site_settings.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/supabase/migrations/20250227000001_disable_rls_portable_db.sql" dialect="PostgreSQL" />
+  </component>
+</project>
