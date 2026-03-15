@@ -35,9 +35,10 @@ export default async function SareeDetailPage({ params }: Props) {
   const settings = settingsResult.data;
   const whatsappNumber = settings?.whatsapp_number?.trim() ?? null;
   const callNumber = settings?.call_number?.trim() ?? null;
+  const defaultTemplate = "Interested in: " + saree.title + (saree.sku ? " (" + saree.sku + ")" : "");
   const template =
     settings?.whatsapp_message_template?.replace(/\{title\}/g, saree.title).replace(/\{sku\}/g, saree.sku ?? "") ??
-    `Interested in: ${saree.title}${saree.sku ? ` (${saree.sku})` : ""};
+    defaultTemplate;
 
   return (
     <StorefrontDetailPage

@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth/session";
+import { getSession } from "@/modules/auth/auth.service";
 import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminLayout({

@@ -121,7 +121,7 @@ export async function createProduct(formData: FormData) {
 
   // Link uploaded images to product
   if (uploadedImages.length > 0) {
-    const { finalizeTempUploads } = await import("@/lib/storage/temp-upload-helpers");
+    const { finalizeTempUploads } = await import("@/modules/images/temp-upload-helpers");
 
     // Finalize temp uploads (move from temp/ to product/)
     const tempKeys = uploadedImages.map((img) => img.storage_key);

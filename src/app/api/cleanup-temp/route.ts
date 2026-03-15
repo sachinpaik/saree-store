@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cleanupTempUploadsByKeys, cleanupAbandonedTempUploads } from "@/lib/storage/temp-upload-helpers";
+import { cleanupTempUploadsByKeys, cleanupAbandonedTempUploads } from "@/modules/images/temp-upload-helpers";
 
 /**
  * Cleanup API endpoint for temporary uploads.
