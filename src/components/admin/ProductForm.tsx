@@ -114,17 +114,13 @@ export const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(functio
     setUploadedImages(images);
   }, []);
 
-  // Cleanup temp uploads
+  // Cleanup temp uploads (server action; no API route)
   const cleanupTempUploads = useCallback(async () => {
     if (!isEdit && uploadedImages.length > 0) {
       const storageKeys = uploadedImages.map((img) => img.storage_key);
-      
       try {
-        await fetch("/api/cleanup-temp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ storage_keys: storageKeys }),
-        });
+        const { cleanupTempUploadsByKeysAction } = await import("@/app/actions/cleanup-temp");
+        await cleanupTempUploadsByKeysAction(storageKeys);
       } catch (err) {
         console.warn("Failed to cleanup temp uploads:", err);
       }

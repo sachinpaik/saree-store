@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { getMediaUrl } from "@/lib/media-url";
+import { cleanupTempUploadsByKeysAction } from "@/app/actions/cleanup-temp";
 
 type UploadedImage = {
   tempId: string;
@@ -73,14 +74,9 @@ export function ProductImageUploader({
     if (storageKeys.length === 0) return;
 
     try {
-      const response = await fetch("/api/cleanup-temp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storage_keys: storageKeys }),
-      });
-
-      if (!response.ok) {
-        console.warn("Failed to cleanup temp uploads:", await response.text());
+      const { error } = await cleanupTempUploadsByKeysAction(storageKeys);
+      if (error) {
+        console.warn("Failed to cleanup temp uploads:", error);
       }
     } catch (err) {
       console.warn("Error cleaning up temp uploads:", err);
