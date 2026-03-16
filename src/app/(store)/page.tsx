@@ -1,24 +1,28 @@
-import { StorefrontHomePage } from "./StorefrontHomePage";
-import { getCarouselImageUrls, listSareesForHomepage } from "@/lib/data/sarees";
-import { getSiteSettings } from "@/lib/data/site-settings";
+import {
+  HomePage,
+  getFeaturedProducts,
+  getCarouselImageUrls,
+  getSiteSettings,
+} from "@/storefront";
 
-const PREVIEW_LIMIT = 8;
+const FEATURED_LIMIT = 8;
+const CAROUSEL_LIMIT = 20;
 
-/** Cache-friendly: server only fetches live data; no cookies(). Revalidate after admin changes. */
-export const revalidate = 3600;
+/** Static: data from Supabase at build time via storefront layer. */
+export const dynamic = "force-static";
 
-export default async function HomePage() {
-  const [sarees, carouselUrls, siteSettings] = await Promise.all([
-    listSareesForHomepage(PREVIEW_LIMIT),
-    getCarouselImageUrls(20),
+export default async function Page() {
+  const [featuredProducts, siteSettings] = await Promise.all([
+    getFeaturedProducts(FEATURED_LIMIT),
     getSiteSettings().catch(() => null),
   ]);
+  const carouselImageUrls = getCarouselImageUrls(featuredProducts, CAROUSEL_LIMIT);
   const rotationSeconds = siteSettings?.homepage_rotation_seconds ?? 5;
 
   return (
-    <StorefrontHomePage
-      initialSarees={sarees}
-      initialCarouselUrls={carouselUrls}
+    <HomePage
+      featuredProducts={featuredProducts}
+      carouselImageUrls={carouselImageUrls}
       rotationSeconds={rotationSeconds ?? undefined}
     />
   );

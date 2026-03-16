@@ -10,6 +10,8 @@
 # next.js
 /.next/
 /out/
+/apps/storefront/.next/
+/apps/storefront/out/
 
 # production
 /build

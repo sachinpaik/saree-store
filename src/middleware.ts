@@ -26,8 +26,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+/** Only run for /admin so storefront can be served static without runtime. */
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/admin", "/admin/(.*)"],
 };

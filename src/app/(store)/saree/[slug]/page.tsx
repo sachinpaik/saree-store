@@ -1,55 +1,63 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getSareeBySlug } from "@/lib/data/sarees";
-import { getProductSpecsForDisplay } from "@/lib/data/attribute-definitions";
-import { createClient } from "@/lib/supabase/server";
-import { StorefrontDetailPage } from "./StorefrontDetailPage";
+import {
+  ProductDetailPage,
+  getApprovedProductBySlug,
+  getApprovedProductSlugs,
+  getStoreSettings,
+  getProductSpecsForDisplay,
+} from "@/storefront";
 
 type Props = { params: Promise<{ slug: string }> };
 
-/** Cache-friendly: server only fetches live data; no cookies(). Revalidate after admin changes. */
-export const revalidate = 3600;
+/** Static: all approved product slugs pre-rendered at build. */
+export const dynamic = "force-static";
+export const dynamicParams = false;
+
+export async function generateStaticParams() {
+  const slugs = await getApprovedProductSlugs();
+  return slugs.map((slug) => ({ slug }));
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const saree = await getSareeBySlug(slug);
-  if (!saree) return { title: "Saree" };
+  const product = await getApprovedProductBySlug(slug);
+  if (!product) return { title: "Saree" };
   return {
-    title: saree.title,
-    description: saree.description ?? undefined,
+    title: product.title,
+    description: product.description ?? undefined,
   };
 }
 
-export default async function SareeDetailPage({ params }: Props) {
+export default async function Page({ params }: Props) {
   const { slug } = await params;
-  const saree = await getSareeBySlug(slug);
-  if (!saree) notFound();
+  const product = await getApprovedProductBySlug(slug);
+  if (!product) notFound();
 
-  const [settingsResult, specs] = await Promise.all([
-    createClient().then((s) =>
-      s.from("store_settings").select("whatsapp_number, call_number, whatsapp_message_template").limit(1).single()
-    ),
-    getProductSpecsForDisplay(saree.id, saree.attributes),
+  const [storeSettings, specs] = await Promise.all([
+    getStoreSettings(),
+    getProductSpecsForDisplay(product.id, product.attributes),
   ]);
 
-  const settings = settingsResult.data;
-  const whatsappNumber = settings?.whatsapp_number?.trim() ?? null;
-  const callNumber = settings?.call_number?.trim() ?? null;
-  const defaultTemplate = "Interested in: " + saree.title + (saree.sku ? " (" + saree.sku + ")" : "");
+  const whatsappNumber = storeSettings?.whatsapp_number?.trim() ?? null;
+  const callNumber = storeSettings?.call_number?.trim() ?? null;
+  const defaultTemplate =
+    "Interested in: " + product.title + (product.sku ? " (" + product.sku + ")" : "");
   const template =
-    settings?.whatsapp_message_template?.replace(/\{title\}/g, saree.title).replace(/\{sku\}/g, saree.sku ?? "") ??
-    defaultTemplate;
+    storeSettings?.whatsapp_message_template
+      ?.replace(/\{title\}/g, product.title)
+      .replace(/\{sku\}/g, product.sku ?? "") ?? defaultTemplate;
 
   return (
-    <StorefrontDetailPage
-      initialSaree={saree}
+    <ProductDetailPage
+      product={product}
       slug={slug}
       settings={{
         whatsappNumber,
         callNumber,
         template,
       }}
-      initialSpecs={specs ?? {}}
+      specs={specs ?? {}}
     />
   );
 }
