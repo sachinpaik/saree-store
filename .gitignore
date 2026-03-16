@@ -12,7 +12,7 @@
 /out/
 /apps/storefront/.next/
 /apps/storefront/out/
-
+/apps/storefront/node_modules
 # production
 /build
 
