@@ -1,0 +1,174 @@
+import { createStorefrontSupabaseClient } from "./supabase.client";
+import type { Product, ProductRow, SiteSettings, StoreSettings } from "../types/storefront.types";
+
+const SELECT =
+  "id, slug, title, sku, price_inr, price_aed, description, stock_status, show_on_homepage, attributes, product_images(id, storage_key, sort_order, alt_text, is_primary, show_on_homepage)";
+
+function rowToProduct(row: ProductRow): Product {
+  const images = (row.product_images ?? [])
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((img) => ({
+      id: img.id,
+      storage_key: img.storage_key,
+      sort_order: img.sort_order,
+      alt_text: img.alt_text ?? null,
+      is_primary: img.is_primary ?? false,
+      show_on_homepage: img.show_on_homepage ?? false,
+    }));
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    sku: row.sku ?? null,
+    images,
+    price_inr: row.price_inr ?? 0,
+    price_aed: row.price_aed ?? 0,
+    description: row.description ?? null,
+    stock_status: row.stock_status ?? "in_stock",
+    show_on_homepage: row.show_on_homepage ?? false,
+    attributes: row.attributes ?? undefined,
+  };
+}
+
+/**
+ * List all approved, non-discontinued products. For static build.
+ */
+export async function getApprovedProducts(): Promise<Product[]> {
+  const supabase = createStorefrontSupabaseClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(SELECT)
+    .eq("status", "approved")
+    .eq("is_discontinued", false)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return (data as ProductRow[]).map(rowToProduct);
+}
+
+/**
+ * Slugs of all approved products. For generateStaticParams.
+ */
+export async function getApprovedProductSlugs(): Promise<string[]> {
+  const supabase = createStorefrontSupabaseClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("slug")
+    .eq("status", "approved")
+    .eq("is_discontinued", false);
+  if (error || !data) return [];
+  return (data as { slug: string }[]).map((r) => r.slug);
+}
+
+/**
+ * Single approved product by slug. For static detail page.
+ */
+export async function getApprovedProductBySlug(slug: string): Promise<Product | null> {
+  const supabase = createStorefrontSupabaseClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(SELECT)
+    .eq("status", "approved")
+    .eq("is_discontinued", false)
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error || !data) return null;
+  return rowToProduct(data as ProductRow);
+}
+
+/**
+ * Featured products for homepage (show_on_homepage, limited).
+ */
+export async function getFeaturedProducts(limit: number): Promise<Product[]> {
+  const all = await getApprovedProducts();
+  return all.filter((p) => p.show_on_homepage).slice(0, limit);
+}
+
+/**
+ * Carousel image URLs (direct R2) from featured products. Uses env R2 public base.
+ */
+export function getCarouselImageUrls(products: Product[], limit: number): string[] {
+  const base = getR2PublicBaseUrl();
+  if (!base) return [];
+  const urls: string[] = [];
+  for (const p of products) {
+    const img = p.images.find((i) => i.show_on_homepage) || p.images.find((i) => i.is_primary) || p.images[0];
+    if (img?.storage_key && urls.length < limit) urls.push(`${base}/${img.storage_key}`);
+  }
+  return urls;
+}
+
+function getR2PublicBaseUrl(): string | null {
+  if (typeof process === "undefined") return null;
+  const base =
+    process.env.NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_BASE_URL ||
+    process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL;
+  return base ? String(base).trim().replace(/\/$/, "") || null : null;
+}
+
+/**
+ * Public image URL for a storage_key. Direct R2; no API route.
+ */
+export function getPublicImageUrl(storageKey: string): string {
+  if (!storageKey || storageKey.includes("..") || storageKey.startsWith("http")) {
+    return storageKey.startsWith("http") ? storageKey : "";
+  }
+  const base = getR2PublicBaseUrl();
+  if (!base) return "";
+  return `${base}/${storageKey}`;
+}
+
+/**
+ * Site settings (e.g. homepage_rotation_seconds). For static build.
+ */
+export async function getSiteSettings(): Promise<SiteSettings | null> {
+  const supabase = createStorefrontSupabaseClient();
+  const { data, error } = await supabase.from("site_settings").select("*").limit(1).single();
+  if (error || !data) return null;
+  return data as SiteSettings;
+}
+
+/**
+ * Store settings (WhatsApp, call, template). For static detail page.
+ */
+export async function getStoreSettings(): Promise<StoreSettings | null> {
+  const supabase = createStorefrontSupabaseClient();
+  const { data, error } = await supabase
+    .from("store_settings")
+    .select("whatsapp_number, call_number, whatsapp_message_template")
+    .limit(1)
+    .single();
+  if (error || !data) return null;
+  return data as StoreSettings;
+}
+
+/**
+ * Product specs (label -> value) for detail page. Uses attribute_definitions + product_attribute_values.
+ */
+export async function getProductSpecsForDisplay(
+  productId: string,
+  productAttributes?: Record<string, string | number | boolean> | null
+): Promise<Record<string, string>> {
+  const supabase = createStorefrontSupabaseClient();
+  const [defsRes, valuesRes] = await Promise.all([
+    supabase.from("attribute_definitions").select("key, label").eq("is_active", true),
+    supabase.from("product_attribute_values").select("attribute_key, value").eq("product_id", productId),
+  ]);
+  const defs = (defsRes.data ?? []) as { key: string; label: string }[];
+  const values = (valuesRes.data ?? []) as { attribute_key: string; value: string | null }[];
+  const keyToLabel = Object.fromEntries(defs.map((d) => [d.key, d.label]));
+  const out: Record<string, string> = {};
+  for (const row of values) {
+    const v = row.value?.trim();
+    if (!v) continue;
+    out[keyToLabel[row.attribute_key] ?? row.attribute_key] = v;
+  }
+  if (Object.keys(out).length > 0) return out;
+  if (!productAttributes || Object.keys(productAttributes).length === 0) return {};
+  for (const [key, val] of Object.entries(productAttributes)) {
+    const v = val == null ? "" : String(val).trim();
+    if (!v) continue;
+    out[keyToLabel[key] ?? key] = v;
+  }
+  return out;
+}
