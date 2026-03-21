@@ -8,9 +8,11 @@ export function ProductCard({ product }: { product: Product }) {
     ? getPublicImageUrl(product.images[0].storage_key)
     : undefined;
 
+  const hasSku = Boolean(product.sku && product.sku.trim().length > 0);
+
   return (
     <Link href={`/saree/${product.slug}`} className="group block">
-      <div className="relative aspect-[3/4] bg-stone-100 rounded-sm overflow-hidden mb-3">
+      <div className="relative aspect-[3/4] bg-surface rounded-sm overflow-hidden mb-3 border border-rim/60">
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -26,13 +28,18 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
         )}
       </div>
-      <h3 className="font-medium text-stone-900 text-sm line-clamp-2 group-hover:underline">
+      {hasSku && (
+        <p className="text-[11px] text-muted mt-1">
+          SKU: <span className="tracking-wide">{product.sku}</span>
+        </p>
+      )}
+      <h3
+        className={`mt-0.5 font-medium text-sm line-clamp-2 group-hover:underline ${
+          "text-foreground"
+        }`}
+      >
         {product.title}
       </h3>
-      <p className="text-stone-600 text-sm mt-0.5">
-        ₹{product.price_inr.toLocaleString("en-IN")}
-        {product.price_aed > 0 && ` · AED ${product.price_aed}`}
-      </p>
     </Link>
   );
 }

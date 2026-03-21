@@ -6,9 +6,11 @@ import Image from "next/image";
 export function Carousel({
   imageUrls,
   rotationSeconds = 5,
+  overlayContent,
 }: {
   imageUrls: string[];
   rotationSeconds?: number;
+  overlayContent?: React.ReactNode;
 }) {
   const [index, setIndex] = useState(0);
   const n = imageUrls.length;
@@ -46,15 +48,20 @@ export function Carousel({
           </div>
         ))}
       </div>
+      {overlayContent && (
+        <div className="absolute left-4 bottom-12 md:left-8 md:bottom-14 z-10 max-w-[85%] md:max-w-sm">
+          {overlayContent}
+        </div>
+      )}
       {n > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
           {imageUrls.map((_, i) => (
             <button
               key={i}
               type="button"
               aria-label={`Slide ${i + 1}`}
               onClick={() => setIndex(i)}
-              className={`h-1.5 w-8 rounded-full ${i === index ? "bg-stone-800" : "bg-stone-300"}`}
+              className={`h-1.5 w-8 rounded-full ${i === index ? "bg-white/90" : "bg-white/40"}`}
             />
           ))}
         </div>

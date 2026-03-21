@@ -13,6 +13,15 @@ const config: Config = {
         serif: ["var(--font-serif)", "Georgia", "serif"],
       },
       colors: {
+        /* Semantic design tokens — use these in components */
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        surface: "var(--surface)",
+        muted: "var(--muted)",
+        rim: "var(--border)",
+        accentGold: "var(--accent-gold)",
+        accentBerry: "var(--accent-berry)",
+        /* Base stone scale kept for utility */
         stone: {
           50: "#fafaf9",
           100: "#f5f5f4",

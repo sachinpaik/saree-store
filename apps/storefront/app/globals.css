@@ -3,11 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --background: #faf9f7;
-  --foreground: #1c1917;
+  /* Page canvas – soft blush silk (inspired by pink Kanchipuram) */
+  --background: #fdf4f7;
+  /* Primary text – deep plum-brown, high contrast on blush */
+  --foreground: #221012;
+  /* Cards, panels, header/footer – slightly lighter blush surface */
+  --surface: #fff9fb;
+  /* Secondary / muted text – dusty rose-brown */
+  --muted: #8a5b5b;
+  /* Subtle borders – soft rose-gold edge */
+  --border: #f0d8df;
+
+  /* Accent tones inspired by zari + pallu */
+  --accent-gold: #c58a33; /* zari gold for highlights/badges */
+  --accent-berry: #b4375a; /* rich pallu pink for CTAs */
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+}
+
+/* Smooth colour transitions when applying interactive states */
+a,
+button {
+  transition-property: color, background-color, border-color, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
