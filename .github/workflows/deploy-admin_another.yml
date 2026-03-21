@@ -1,0 +1,91 @@
+# Build static admin (Next.js output: export) and deploy to Cloudflare Pages.
+#
+# One-time: create a Cloudflare Pages project (Workers & Pages → Create → Pages)
+# with the same name as CLOUDFLARE_PAGES_PROJECT_NAME (default: saree-admin).
+#
+# GitHub → Settings → Secrets and variables → Actions:
+#   Secrets (recommended names — match your .env):
+#     CLOUDFLARE_API_TOKEN          — needs Account → Cloudflare Pages → Edit
+#     CLOUDFLARE_ACCOUNT_ID
+#     NEXT_PUBLIC_SUPABASE_URL
+#     NEXT_PUBLIC_SUPABASE_ANON_KEY
+#     NEXT_PUBLIC_UPLOAD_SIGNER_URL — upload-signer Worker base URL (no trailing slash)
+#
+#   Optional secrets:
+#     NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_BASE_URL
+#     NEXT_PUBLIC_SITE_URL
+#
+#   Variables (Settings → Secrets and variables → Actions → Variables):
+#     CLOUDFLARE_PAGES_PROJECT_NAME — Pages project name (default if unset: saree-admin)
+#
+# Docs: apps/admin/docs/DEPLOY_CLOUDFLARE_PAGES.md
+
+name: Deploy admin (Cloudflare Pages)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/admin/**"
+      - ".github/workflows/deploy-admin.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-admin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Pages project name
+        id: pages
+        run: |
+          N="${CLOUDFLARE_PAGES_PROJECT_NAME}"
+          if [ -z "$N" ]; then N="saree-admin"; fi
+          echo "project=$N" >> "$GITHUB_OUTPUT"
+        env:
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci
+
+      - name: Build static export
+        working-directory: apps/admin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_UPLOAD_SIGNER_URL: ${{ secrets.NEXT_PUBLIC_UPLOAD_SIGNER_URL_MANU }}
+          NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ] || [ -z "${NEXT_PUBLIC_UPLOAD_SIGNER_URL:-}" ]; then
+            echo "::error::Set GitHub Actions secrets: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_UPLOAD_SIGNER_URL"
+            exit 1
+          fi
+          npm run build
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN_MANU }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID_MANU }}
+          projectName: ${{ steps.pages.outputs.project }}
+          directory: apps/admin/out
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
