@@ -2,12 +2,9 @@ name = "upload-signer"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 
-# R2 and Supabase secrets: set via wrangler secret or in dashboard
-# wrangler secret put CLOUDFLARE_R2_ACCOUNT_ID
-# wrangler secret put CLOUDFLARE_R2_ACCESS_KEY_ID
-# wrangler secret put CLOUDFLARE_R2_SECRET_ACCESS_KEY
-# wrangler secret put CLOUDFLARE_R2_BUCKET
-# wrangler secret put SUPABASE_JWT_SECRET
+# R2 + Supabase secrets: set via GitHub Actions (recommended) or manually:
+#   docs/DEPLOY_FROM_GITHUB.md  →  .github/workflows/deploy-upload-signer.yml
+# Or: wrangler secret put CLOUDFLARE_R2_ACCOUNT_ID  (etc.)
 #
 # Optional CORS allowlist: variable name CORS_ORIGINS (comma-separated origins).
 # Do NOT put real domains in this file — set them in Cloudflare Dashboard (Worker →

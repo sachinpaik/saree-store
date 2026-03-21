@@ -26,6 +26,8 @@ Optional **CORS** allowlist: set plain variable `CORS_ORIGINS` in the Cloudflare
 
 **Full Cloudflare Worker deployment guide:** [docs/DEPLOY_CLOUDFLARE.md](./docs/DEPLOY_CLOUDFLARE.md) (login, secrets, CORS, custom domain, troubleshooting).
 
+**Deploy from GitHub (Actions + secrets):** [docs/DEPLOY_FROM_GITHUB.md](./docs/DEPLOY_FROM_GITHUB.md)
+
 ## 3. Admin app
 
 In `apps/admin` `.env.local`:

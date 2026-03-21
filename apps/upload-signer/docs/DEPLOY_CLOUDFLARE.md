@@ -128,3 +128,5 @@ Then test image upload from the deployed **admin** app with a valid admin sessio
 | Presign 500 | R2 secret names / bucket name; account ID matches R2 dashboard |
 
 See also: [README.md](../README.md) in this folder.
+
+**Deploy from GitHub:** [DEPLOY_FROM_GITHUB.md](./DEPLOY_FROM_GITHUB.md) (API token, `CLOUDFLARE_ACCOUNT_ID`, example workflow).
