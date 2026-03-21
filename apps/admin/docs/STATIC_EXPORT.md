@@ -1,6 +1,8 @@
 # Fully static admin (optional / advanced)
 
-Your admin app **today** is **not** “only static HTML/JS”:
+> **Update:** The admin app uses **`output: "export"`**. Deploy to Cloudflare Pages from GitHub: **[DEPLOY_CLOUDFLARE_PAGES.md](./DEPLOY_CLOUDFLARE_PAGES.md)**.
+
+Older drafts of this doc assumed the admin was **not** “only static HTML/JS”:
 
 - **Server Components** (e.g. async `layout.tsx` with `getSession()`).
 - **Server Actions** (`"use server"`) for login, products, drafts, etc.

@@ -55,9 +55,13 @@ NEXT_PUBLIC_UPLOAD_SIGNER_URL=https://upload-signer.<your-subdomain>.workers.dev
 - **CORS:** `Access-Control-Allow-Origin` reflects request `Origin` (or `*`); optional env `CORS_ORIGINS` (comma-separated) to restrict.
 - **Presign:** PUT to R2, `Content-Type` signed, expiry **15 minutes**.
 
-All documentation for this worker lives in **this folder** (`README.md` only).
+More docs: `docs/` (deploy, testing).
 
-## 5. Manual test checklist
+## 5. Testing (R2 console + HTTP)
+
+You **cannot** run upload-signer from inside the R2 UI — test the **Worker URL** with `curl`/admin, then **verify objects** in **R2 → bucket → Objects**. See **[docs/TESTING.md](./docs/TESTING.md)**.
+
+## 6. Manual test checklist
 
 - [ ] Deploy worker from `apps/upload-signer`
 - [ ] Set `NEXT_PUBLIC_UPLOAD_SIGNER_URL` in admin and verify image upload on new/edit product flows

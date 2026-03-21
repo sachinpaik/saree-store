@@ -67,6 +67,12 @@ The admin browser calls `POST {NEXT_PUBLIC_UPLOAD_SIGNER_URL}/sign-upload` with 
 
 ## Deploy checklist
 
+### Cloudflare Pages (GitHub Actions)
+
+See **[DEPLOY_CLOUDFLARE_PAGES.md](./DEPLOY_CLOUDFLARE_PAGES.md)** — workflow **`.github/workflows/deploy-admin.yml`** builds static admin and publishes `out/` to Pages.
+
+### Manual checklist
+
 1. Deploy **`apps/upload-signer`** (Wrangler) and set worker secrets (`CLOUDFLARE_R2_*`, `SUPABASE_JWT_SECRET`, etc.).
 2. Set **`NEXT_PUBLIC_UPLOAD_SIGNER_URL`** in the admin deployment to that worker URL.
 3. Ensure CORS on the worker allows your admin origin (`CORS_ORIGINS` in worker or permissive during dev).
