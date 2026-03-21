@@ -45,14 +45,21 @@ These values are pushed to the Worker with `wrangler secret put` on every succes
 | `CLOUDFLARE_R2_ACCESS_KEY_ID` | R2 S3-compatible access key |
 | `CLOUDFLARE_R2_SECRET_ACCESS_KEY` | R2 S3-compatible secret |
 | `CLOUDFLARE_R2_BUCKET` | R2 bucket name |
-| `SUPABASE_JWT_SECRET` | Supabase **JWT Secret** (Dashboard → **Settings** → **API**) — used to verify admin JWTs |
+
+**JWT verification — set at least one** (see [SUPABASE_JWT_SIGNING_KEYS.md](./SUPABASE_JWT_SIGNING_KEYS.md)):
+
+| Secret | When |
+|--------|------|
+| `SUPABASE_JWT_SECRET` | **Legacy HS256** shared secret (Supabase → **API** → JWT Secret, or JWT signing keys → Legacy HS256). |
+| `UPLOAD_SIGNER_SUPABASE_URL` | **ECC (P-256) / ES256** — project URL only (`https://xxxx.supabase.co`, same as admin). No shared secret in UI; Worker uses **JWKS**. |
+
+You can set **both** during migration; HS256 is tried first, then JWKS.
 
 ### Optional
 
 | Secret | Description |
 |--------|-------------|
 | `UPLOAD_SIGNER_CORS_ORIGINS` | Comma-separated allowed **Origin** values for the browser admin (e.g. `https://admin.pages.dev,https://admin.example.com`). If unset, the Worker allows any origin (OK for early dev; tighten for production). Passed as plain variable `CORS_ORIGINS` at deploy time. |
-| `UPLOAD_SIGNER_SUPABASE_URL` | Optional — sets Worker secret `SUPABASE_URL` if your code needs it (`src/env.ts`). |
 
 **Do not** commit these values in the repo.
 

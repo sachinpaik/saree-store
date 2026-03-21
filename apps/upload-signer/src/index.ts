@@ -3,7 +3,7 @@
  * POST /sign-upload | /finalize-temp | /delete-objects (all require admin JWT).
  */
 
-import { jwtVerify, type JWTPayload } from "jose";
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import type { Env } from "./env";
 import { r2Request } from "./r2-s3";
 
@@ -48,30 +48,82 @@ function corsHeaders(request: Request, env: Env): Record<string, string> {
 
 type AdminAuthResult =
   | { ok: true; sub: string }
-  | { ok: false; reason: "invalid_token" | "not_admin" };
+  | { ok: false; reason: "invalid_token" | "not_admin" | "missing_auth_env" };
 
-/**
- * Verify Supabase access_token (HS256). Admin role may be in app_metadata or user_metadata.
- * Invalid signature / wrong secret → invalid_token. Valid JWT but no admin → not_admin.
- */
-async function verifyAdminToken(token: string, env: Env): Promise<AdminAuthResult> {
-  const secret = new TextEncoder().encode(env.SUPABASE_JWT_SECRET);
-  let payload: JWTPayload;
-
+/** Supabase asymmetric JWTs (JWT signing keys / ES256) — verify via JWKS. */
+async function verifySupabaseJwtWithJwks(token: string, supabaseUrl: string): Promise<JWTPayload | null> {
+  const base = supabaseUrl.replace(/\/$/, "");
+  const jwksUrl = new URL(`${base}/auth/v1/.well-known/jwks.json`);
+  const JWKS = createRemoteJWKSet(jwksUrl);
+  const issuer = `${base}/auth/v1`;
   try {
-    const verified = await jwtVerify(token, secret, {
-      algorithms: ["HS256"],
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer,
       audience: "authenticated",
     });
-    payload = verified.payload;
+    return payload;
   } catch {
-    // Some Supabase tokens omit or vary `aud`; retry without audience check (still HS256 + same secret).
     try {
-      const verified = await jwtVerify(token, secret, { algorithms: ["HS256"] });
+      const { payload } = await jwtVerify(token, JWKS, { issuer });
+      return payload;
+    } catch {
+      try {
+        const { payload } = await jwtVerify(token, JWKS, {
+          audience: "authenticated",
+        });
+        return payload;
+      } catch {
+        try {
+          const { payload } = await jwtVerify(token, JWKS);
+          return payload;
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Verify Supabase access_token:
+ * - HS256 with SUPABASE_JWT_SECRET when set (legacy shared secret), or
+ * - ES256 (ECC P-256) via JWKS when SUPABASE_URL is set — no shared secret; UI only shows key IDs.
+ * Admin role may be in app_metadata or user_metadata.
+ */
+async function verifyAdminToken(token: string, env: Env): Promise<AdminAuthResult> {
+  const jwtSecret = env.SUPABASE_JWT_SECRET?.trim();
+  const supabaseUrl = env.SUPABASE_URL?.trim();
+
+  if (!jwtSecret && !supabaseUrl) {
+    return { ok: false, reason: "missing_auth_env" };
+  }
+
+  let payload: JWTPayload | null = null;
+
+  if (jwtSecret) {
+    const secret = new TextEncoder().encode(jwtSecret);
+    try {
+      const verified = await jwtVerify(token, secret, {
+        algorithms: ["HS256"],
+        audience: "authenticated",
+      });
       payload = verified.payload;
     } catch {
-      return { ok: false, reason: "invalid_token" };
+      try {
+        const verified = await jwtVerify(token, secret, { algorithms: ["HS256"] });
+        payload = verified.payload;
+      } catch {
+        payload = null;
+      }
     }
+  }
+
+  if (!payload && supabaseUrl) {
+    payload = await verifySupabaseJwtWithJwks(token, supabaseUrl);
+  }
+
+  if (!payload) {
+    return { ok: false, reason: "invalid_token" };
   }
 
   const appMeta = payload.app_metadata as Record<string, unknown> | undefined;
@@ -266,13 +318,25 @@ export default {
 
     const admin = await verifyAdminToken(token, env);
     if (!admin.ok) {
+      if (admin.reason === "missing_auth_env") {
+        return jsonResponse(
+          {
+            error: "Worker misconfigured",
+            code: "missing_auth_env",
+            hint:
+              "Set Worker secret SUPABASE_URL to your Supabase project URL (https://xxxx.supabase.co) for ECC/ES256 JWTs, and/or SUPABASE_JWT_SECRET for Legacy HS256. See apps/upload-signer/docs/SUPABASE_JWT_SIGNING_KEYS.md",
+          },
+          500,
+          cors
+        );
+      }
       if (admin.reason === "invalid_token") {
         return jsonResponse(
           {
             error: "Unauthorized",
             code: "invalid_token",
             hint:
-              "JWT did not verify. Set Worker secret SUPABASE_JWT_SECRET to the exact JWT Secret from Supabase → Settings → API (not the anon key). Redeploy the worker after changing secrets.",
+              "JWT did not verify. ECC (P-256) / ES256: set SUPABASE_URL on the Worker (same URL as NEXT_PUBLIC_SUPABASE_URL); there is no shared secret in the dashboard. Legacy HS256: set SUPABASE_JWT_SECRET. Redeploy after changing secrets.",
           },
           401,
           cors

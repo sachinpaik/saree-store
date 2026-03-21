@@ -33,7 +33,7 @@ npx wrangler secret put SUPABASE_JWT_SECRET
 ```
 
 - **R2 credentials:** R2 → Overview → *Manage R2 API Tokens* (or S3-compatible credentials for your account).
-- **`SUPABASE_JWT_SECRET`:** Supabase Dashboard → Project → **Settings** → **API** → **JWT Secret** (used to verify admin JWTs with HS256).
+- **`SUPABASE_JWT_SECRET`:** Must match the **shared secret** used to sign user JWTs. Usually **Settings** → **API** → **JWT Secret**, or **JWT signing keys** → **Legacy HS256** (see [SUPABASE_JWT_HS256.md](./SUPABASE_JWT_HS256.md)).
 
 ## 4. Optional: restrict CORS (production)
 

@@ -20,13 +20,16 @@ Minimal Cloudflare Worker that issues R2 presigned PUT URLs for direct browser u
 cd apps/upload-signer && npm install && npm run deploy
 ```
 
-Set secrets: `CLOUDFLARE_R2_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_R2_BUCKET`, `SUPABASE_JWT_SECRET` via `wrangler secret put`.
+Set secrets: R2 vars + **either** `SUPABASE_JWT_SECRET` (Legacy HS256) **or** `SUPABASE_URL` (ECC/ES256 JWKS) — see [SUPABASE_JWT_SIGNING_KEYS.md](./docs/SUPABASE_JWT_SIGNING_KEYS.md). Use `wrangler secret put`.
 
 Optional **CORS** allowlist: set plain variable `CORS_ORIGINS` in the Cloudflare Dashboard (Worker → Settings → Variables), or `wrangler deploy --var CORS_ORIGINS:"…"` from CI — **not** in committed `wrangler.toml`. See [docs/DEPLOY_CLOUDFLARE.md](./docs/DEPLOY_CLOUDFLARE.md).
 
 **Full Cloudflare Worker deployment guide:** [docs/DEPLOY_CLOUDFLARE.md](./docs/DEPLOY_CLOUDFLARE.md) (login, secrets, CORS, custom domain, troubleshooting).
 
 **Deploy from GitHub (Actions + secrets):** [docs/DEPLOY_FROM_GITHUB.md](./docs/DEPLOY_FROM_GITHUB.md)
+
+**How admin JWT + upload-signer work (plain English):** [docs/HOW_AUTH_WORKS.md](./docs/HOW_AUTH_WORKS.md)  
+**Supabase JWT:** [Legacy HS256](./docs/SUPABASE_JWT_HS256.md) · [ECC / ES256 & JWKS](./docs/SUPABASE_JWT_SIGNING_KEYS.md)
 
 ## 3. Admin app
 

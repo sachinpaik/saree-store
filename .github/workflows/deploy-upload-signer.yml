@@ -7,11 +7,12 @@
 #   CLOUDFLARE_R2_ACCESS_KEY_ID
 #   CLOUDFLARE_R2_SECRET_ACCESS_KEY
 #   CLOUDFLARE_R2_BUCKET
-#   SUPABASE_JWT_SECRET
+#   At least one of:
+#     SUPABASE_JWT_SECRET        — Legacy HS256 shared secret (Supabase → API → JWT Secret)
+#     UPLOAD_SIGNER_SUPABASE_URL — Project URL for ECC/ES256 (JWKS); required if no HS256 secret
 #
 # Optional:
 #   UPLOAD_SIGNER_CORS_ORIGINS   — comma-separated admin origins (plain Worker var)
-#   UPLOAD_SIGNER_SUPABASE_URL   — optional Worker secret SUPABASE_URL (see src/env.ts)
 #
 # Docs: apps/upload-signer/docs/DEPLOY_FROM_GITHUB.md
 
@@ -88,7 +89,13 @@ jobs:
           put_required CLOUDFLARE_R2_ACCESS_KEY_ID "$V_R2_ACCESS_KEY_ID"
           put_required CLOUDFLARE_R2_SECRET_ACCESS_KEY "$V_R2_SECRET_ACCESS_KEY"
           put_required CLOUDFLARE_R2_BUCKET "$V_R2_BUCKET"
-          put_required SUPABASE_JWT_SECRET "$V_SUPABASE_JWT_SECRET"
+          if [ -z "${V_SUPABASE_JWT_SECRET:-}" ] && [ -z "${V_SUPABASE_URL:-}" ]; then
+            echo "::error::Set SUPABASE_JWT_SECRET (HS256) and/or UPLOAD_SIGNER_SUPABASE_URL (ECC/ES256 JWKS). See apps/upload-signer/docs/SUPABASE_JWT_SIGNING_KEYS.md"
+            exit 1
+          fi
+          if [ -n "${V_SUPABASE_JWT_SECRET:-}" ]; then
+            printf '%s' "$V_SUPABASE_JWT_SECRET" | npx wrangler secret put SUPABASE_JWT_SECRET
+          fi
           if [ -n "${V_SUPABASE_URL:-}" ]; then
             printf '%s' "$V_SUPABASE_URL" | npx wrangler secret put SUPABASE_URL
           fi
