@@ -94,10 +94,10 @@ export async function r2Request(
   const url = new URL(`/${env.CLOUDFLARE_R2_BUCKET}/${key}`, endpoint(env.CLOUDFLARE_R2_ACCOUNT_ID));
   const bodyBuffer = body ?? null;
   const signedHeaders = await signRequest(method, url, extraHeaders, bodyBuffer, env);
+  // Note: do not set `cache` on RequestInit — Cloudflare Workers fetch does not implement it.
   return fetch(url.toString(), {
     method,
     headers: signedHeaders,
     body: bodyBuffer && method !== "GET" && method !== "HEAD" ? bodyBuffer : undefined,
-    cache: "no-store",
   });
 }
