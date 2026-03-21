@@ -406,36 +406,73 @@ export default {
       }
       if (admin.reason === "invalid_token") {
         const d = admin.diag;
+        const hasUrl = Boolean(env.SUPABASE_URL?.trim());
+        const hasSecret = Boolean(env.SUPABASE_JWT_SECRET?.trim());
         const jwksOk = d?.jwks_status === 200;
-        const lines = [
-          "JWT did not verify.",
-          "• Set Worker secret SUPABASE_URL exactly to your project API URL (e.g. https://xxxx.supabase.co) — same value as NEXT_PUBLIC_SUPABASE_URL in admin. Redeploy the worker after saving.",
-          "• For Legacy HS256 only: set SUPABASE_JWT_SECRET (JWT Secret from Supabase → Settings → API).",
-        ];
-        if (d?.alg === "HS256" && !env.SUPABASE_JWT_SECRET?.trim()) {
-          lines.push("• Your token uses alg HS256: add SUPABASE_JWT_SECRET, or use a session after switching to ECC/ES256 in Supabase.");
+        const alg = d?.alg;
+        const isAsymmetric = alg === "ES256" || alg === "RS256" || (Boolean(alg) && alg !== "HS256");
+
+        /** Suggested base URL from token iss (no path) — user should set Worker SUPABASE_URL to this. */
+        let suggestedSupabaseOrigin: string | undefined;
+        if (d?.iss) {
+          try {
+            suggestedSupabaseOrigin = new URL(d.iss).origin;
+          } catch {
+            /* ignore */
+          }
         }
-        if (d?.alg && d.alg !== "HS256" && !jwksOk) {
+
+        const lines: string[] = [];
+
+        if (isAsymmetric && !hasUrl) {
           lines.push(
-            `• JWKS fetch at your project returned HTTP ${d.jwks_status ?? "?"}. Check SUPABASE_URL (must be https://<project-ref>.supabase.co).`
+            `Your access token uses ${alg ?? "asymmetric"} (not HS256). SUPABASE_JWT_SECRET cannot verify it — you must add Worker secret SUPABASE_URL.`
           );
-        }
-        if (d?.alg && d.alg !== "HS256" && jwksOk) {
           lines.push(
-            `• Token alg=${d.alg}, iss=${d.iss ?? "?"}. If this persists, confirm the Worker’s SUPABASE_URL matches this project (same ref as in iss).`
+            `Set SUPABASE_URL to your project base URL (same as admin NEXT_PUBLIC_SUPABASE_URL), e.g. ${suggestedSupabaseOrigin ?? "https://YOUR_PROJECT_REF.supabase.co"} — no trailing slash.`
           );
+          lines.push(
+            "GitHub: add secret UPLOAD_SIGNER_SUPABASE_URL, or Cloudflare: Workers → upload-signer → Variables → add secret SUPABASE_URL. Then redeploy upload-signer."
+          );
+        } else {
+          lines.push("JWT did not verify.");
+          lines.push(
+            "• Set Worker secret SUPABASE_URL to your project API URL (same as NEXT_PUBLIC_SUPABASE_URL). Redeploy after saving."
+          );
+          lines.push("• Legacy HS256 only: set SUPABASE_JWT_SECRET (Supabase → Settings → API).");
+          if (alg === "HS256" && !hasSecret) {
+            lines.push(
+              "• Your token is HS256: ensure SUPABASE_JWT_SECRET matches Supabase JWT Secret, or sign in again after switching to ES256."
+            );
+          }
+          if (isAsymmetric && hasUrl && !jwksOk && d?.jwks_status !== undefined) {
+            lines.push(
+              `• JWKS fetch returned HTTP ${d.jwks_status}. Check SUPABASE_URL matches https://<project-ref>.supabase.co`
+            );
+          }
+          if (isAsymmetric && hasUrl && jwksOk) {
+            lines.push(
+              `• Token iss=${d?.iss ?? "?"}. If verification still fails, confirm SUPABASE_URL origin matches this iss host.`
+            );
+          }
         }
+
         return jsonResponse(
           {
             error: "Unauthorized",
             code: "invalid_token",
             hint: lines.join(" "),
+            fix:
+              isAsymmetric && !hasUrl
+                ? "add_worker_secret_SUPABASE_URL"
+                : undefined,
+            suggested_supabase_url: suggestedSupabaseOrigin,
             debug: {
-              token_alg: d?.alg,
+              token_alg: alg,
               token_iss: d?.iss,
               jwks_http_status: d?.jwks_status,
-              worker_has_supabase_url: Boolean(env.SUPABASE_URL?.trim()),
-              worker_has_jwt_secret: Boolean(env.SUPABASE_JWT_SECRET?.trim()),
+              worker_has_supabase_url: hasUrl,
+              worker_has_jwt_secret: hasSecret,
             },
           },
           401,
