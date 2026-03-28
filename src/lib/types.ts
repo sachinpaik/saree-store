@@ -1,6 +1,11 @@
 export type SareeImage = {
   id: string;
   storage_key: string;
+  image_url?: string | null;
+  original_url?: string | null;
+  thumb_url?: string | null;
+  medium_url?: string | null;
+  large_url?: string | null;
   sort_order: number;
   alt_text?: string | null;
   is_primary?: boolean;

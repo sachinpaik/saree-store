@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/kanchipuram-silks", label: "Kanchipuram Silks" },
+  { href: "/about", label: "Silk Manufacturing" },
   { href: "/information", label: "Info" },
 ];
 
@@ -21,15 +23,18 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 export function HeaderInner({
   businessName,
+  logoUrl,
   whatsappNumber,
   callNumber,
 }: {
   businessName: string;
+  logoUrl: string | null;
   whatsappNumber: string | null;
   callNumber: string | null;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const mobileMenuId = "mobile-nav-menu";
 
   const cleanWA = whatsappNumber?.replace(/\D/g, "") ?? null;
   const whatsappHref = cleanWA
@@ -37,15 +42,24 @@ export function HeaderInner({
     : null;
   const callHref = callNumber ? `tel:${callNumber.replace(/\s/g, "")}` : null;
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   return (
     <header className="sticky top-0 z-50 border-b border-rim bg-surface/95 backdrop-blur-sm">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link
           href="/"
-          className="font-serif text-xl tracking-wide text-foreground shrink-0"
+          className="min-w-0 flex-1 md:flex-none flex items-center gap-2 text-foreground truncate"
         >
-          {businessName}
+          {logoUrl ? (
+            <span className="relative h-8 w-8 shrink-0 rounded-sm overflow-hidden border border-rim bg-white">
+              <Image src={logoUrl} alt={businessName} fill className="object-contain" sizes="32px" unoptimized />
+            </span>
+          ) : null}
+          <span className="font-serif text-xl tracking-wide truncate">{businessName}</span>
         </Link>
 
         {/* Desktop nav */}
@@ -70,7 +84,7 @@ export function HeaderInner({
         </nav>
 
         {/* Right actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {whatsappHref && (
             <a
               href={whatsappHref}
@@ -113,6 +127,7 @@ export function HeaderInner({
             onClick={() => setMenuOpen((v) => !v)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
+            aria-controls={mobileMenuId}
             className="md:hidden p-2 rounded-sm text-muted hover:bg-background transition-colors"
           >
             {menuOpen ? (
@@ -153,7 +168,7 @@ export function HeaderInner({
       {/* Mobile dropdown menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-rim bg-surface shadow-sm">
-          <nav className="max-w-6xl mx-auto px-4 py-2 flex flex-col">
+          <nav id={mobileMenuId} className="max-w-6xl mx-auto px-4 py-2 flex flex-col">
             {NAV_LINKS.map(({ href, label }) => {
               const isActive =
                 href === "/" ? pathname === "/" : pathname.startsWith(href);

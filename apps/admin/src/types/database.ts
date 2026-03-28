@@ -35,6 +35,8 @@ export interface SiteSettings {
   instagram_url: string | null;
   support_hours: string | null;
   homepage_rotation_seconds: number | null;
+  homepage_carousel_image_keys: string[];
+  company_logo_key: string | null;
   updated_at: string;
 }
 
@@ -72,8 +74,17 @@ export interface ProductImage {
   id: string;
   product_id: string;
   storage_key: string;
+  image_url?: string | null;
+  original_url?: string | null;
+  thumb_url?: string | null;
+  medium_url?: string | null;
+  large_url?: string | null;
   sort_order: number;
   alt_text?: string | null;
+  image_tag?: string | null;
+  status?: "uploading" | "processing" | "ready" | "failed";
+  width?: number | null;
+  height?: number | null;
   is_primary?: boolean;
   show_on_homepage?: boolean;
   created_at: string;
@@ -86,4 +97,24 @@ export interface ProductWithImages extends Product {
 
 export interface TypeWithProducts extends Type {
   products?: ProductWithImages[];
+}
+
+export interface AboutContent {
+  id: string;
+  title: string;
+  intro_text: string;
+  body_html: string;
+  updated_at: string;
+}
+
+export interface AboutVideo {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail_key: string | null;
+  video_360_key: string | null;
+  video_720_key: string | null;
+  video_1080_key: string | null;
+  sort_order: number;
+  created_at: string;
 }

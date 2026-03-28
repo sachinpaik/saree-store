@@ -513,8 +513,14 @@ export default {
           return jsonResponse({ error: "Invalid or missing productId" }, 400, cors);
         }
 
-        const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-        const ct = allowedTypes.includes(contentType) ? contentType : "image/jpeg";
+        const allowedTypes = [
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "video/mp4",
+        ];
+        const ct = allowedTypes.includes(contentType) ? contentType : "application/octet-stream";
 
         const storageKey = buildStorageKey(productId, mode, fileName);
 

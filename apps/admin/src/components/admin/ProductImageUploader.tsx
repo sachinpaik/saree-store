@@ -6,23 +6,51 @@ import { getMediaUrl } from "@/lib/media-url";
 import { cleanupTempUploadsByKeysAction } from "@/lib/admin/cleanup-temp";
 import { signUploadRequest } from "@/lib/upload-signer";
 import { randomUUID } from "@/lib/random-id";
+import {
+  IMAGE_UPLOAD_CONFIG,
+  type ImageTag,
+  type UploadedImagePayload,
+  readImageDimensions,
+  validateImageDimensions,
+  validateImageFile,
+} from "@/lib/admin/image-variants";
 
-type UploadedImage = {
+type UploadedImage = UploadedImagePayload & {
   tempId: string;
-  storage_key: string;
-  file_name: string;
-  alt_text?: string;
-  is_primary: boolean;
-  show_on_homepage: boolean;
 };
 
 type PendingUpload = {
   tempId: string;
   file: File;
   objectUrl: string;
+  progress: number;
   uploading: boolean;
   error?: string;
+  width?: number;
+  height?: number;
 };
+
+function toMediaUrl(value?: string | null): string | null {
+  if (!value) return null;
+  return value.startsWith("http") ? value : getMediaUrl(value);
+}
+
+function getListingPreview(image: {
+  thumb_url?: string | null;
+  medium_url?: string | null;
+  large_url?: string | null;
+  storage_key?: string | null;
+  image_url?: string | null;
+}): string {
+  return (
+    toMediaUrl(image.thumb_url) ??
+    toMediaUrl(image.medium_url) ??
+    toMediaUrl(image.large_url) ??
+    toMediaUrl(image.storage_key) ??
+    toMediaUrl(image.image_url) ??
+    ""
+  );
+}
 
 type ProductImageUploaderProps = {
   onImagesChange: (images: UploadedImage[]) => void;
@@ -90,45 +118,83 @@ export function ProductImageUploader({
     }
   }, [uploadedImages, onCleanup]);
 
-  const uploadToStorage = useCallback(async (file: File): Promise<string> => {
-    const { putUrl, storageKey } = await signUploadRequest(file, sessionId, "temp");
-
-    const putRes = await fetch(putUrl, {
-      method: "PUT",
-      body: file,
-      headers: {
-        "Content-Type": file.type && file.type.length > 0 ? file.type : "application/octet-stream",
-      },
-    });
-    if (!putRes.ok) {
-      throw new Error("Upload to storage failed");
-    }
-    return storageKey;
-  }, [sessionId]);
-
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
+    await processFiles(Array.from(files));
+    e.target.value = "";
+  }
 
+  async function uploadWithProgress(
+    putUrl: string,
+    file: File,
+    onProgress: (value: number) => void
+  ): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", putUrl);
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable || event.total <= 0) return;
+        onProgress(Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100))));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          onProgress(100);
+          resolve();
+          return;
+        }
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      };
+      xhr.onerror = () => reject(new Error("Upload failed"));
+      xhr.send(file);
+    });
+  }
+
+  const processFiles = useCallback(async (fileList: File[]) => {
     setGlobalError(null);
-    const fileList = Array.from(files);
+    const accepted: PendingUpload[] = [];
+    const errors: string[] = [];
 
-    // Create pending uploads with optimistic previews
-    const newPending: PendingUpload[] = fileList.map((file) => ({
-      tempId: randomUUID(),
-      file,
-      objectUrl: URL.createObjectURL(file),
-      uploading: true,
-    }));
+    for (const file of fileList) {
+      const fileErr = validateImageFile(file);
+      if (fileErr) {
+        errors.push(`${file.name}: ${fileErr}`);
+        continue;
+      }
+      const dim = await readImageDimensions(file);
+      const dimErr = validateImageDimensions(dim);
+      if (dimErr) {
+        errors.push(`${file.name}: ${dimErr}`);
+        continue;
+      }
+      accepted.push({
+        tempId: randomUUID(),
+        file,
+        objectUrl: URL.createObjectURL(file),
+        progress: 0,
+        uploading: true,
+        width: dim?.width,
+        height: dim?.height,
+      });
+    }
 
-    setPendingUploads((prev) => [...prev, ...newPending]);
+    if (errors.length) {
+      setGlobalError(errors.join(" "));
+    }
+    if (!accepted.length) return;
 
-    // Upload files one by one
-    for (const pending of newPending) {
+    setPendingUploads((prev) => [...prev, ...accepted]);
+
+    for (const pending of accepted) {
       try {
-        const storage_key = await uploadToStorage(pending.file);
+        const { putUrl, storageKey } = await signUploadRequest(pending.file, sessionId, "temp");
+        await uploadWithProgress(putUrl, pending.file, (progress) =>
+          setPendingUploads((prev) =>
+            prev.map((p) => (p.tempId === pending.tempId ? { ...p, progress } : p))
+          )
+        );
 
-        // Move from pending to uploaded
         setPendingUploads((prev) => {
           const item = prev.find((p) => p.tempId === pending.tempId);
           if (item) URL.revokeObjectURL(item.objectUrl);
@@ -141,29 +207,38 @@ export function ProductImageUploader({
             ...prev,
             {
               tempId: pending.tempId,
-              storage_key,
+              storage_key: storageKey,
               file_name: pending.file.name,
               alt_text: "",
-              is_primary: isFirst, // First image is auto-primary
-              show_on_homepage: false,
+              image_tag: "",
+              width: pending.width,
+              height: pending.height,
+              status: "ready",
+              original_url: storageKey,
+              thumb_url: storageKey,
+              medium_url: storageKey,
+              large_url: storageKey,
+              image_url: storageKey,
+              is_primary: isFirst,
             },
           ];
         });
       } catch (err) {
-        // Mark as error
         setPendingUploads((prev) =>
           prev.map((p) =>
             p.tempId === pending.tempId
-              ? { ...p, uploading: false, error: err instanceof Error ? err.message : "Upload failed" }
+              ? {
+                  ...p,
+                  uploading: false,
+                  error: err instanceof Error ? err.message : "Upload failed",
+                }
               : p
           )
         );
         setGlobalError(err instanceof Error ? err.message : "Upload failed");
       }
     }
-
-    e.target.value = ""; // Reset input
-  }
+  }, [sessionId]);
 
   function removeImage(tempId: string) {
     setUploadedImages((prev) => {
@@ -201,23 +276,63 @@ export function ProductImageUploader({
     );
   }
 
-  function setShowOnHomepage(tempId: string) {
-    setUploadedImages((prev) =>
-      prev.map((img) => ({
-        ...img,
-        show_on_homepage: img.tempId === tempId,
-      }))
-    );
-  }
-
   function updateAltText(tempId: string, altText: string) {
     setUploadedImages((prev) =>
       prev.map((img) => (img.tempId === tempId ? { ...img, alt_text: altText } : img))
     );
   }
 
+  function updateTag(tempId: string, imageTag: ImageTag) {
+    setUploadedImages((prev) =>
+      prev.map((img) => (img.tempId === tempId ? { ...img, image_tag: imageTag } : img))
+    );
+  }
+
+  async function replaceUploaded(tempId: string, file: File) {
+    const fileErr = validateImageFile(file);
+    if (fileErr) {
+      setGlobalError(fileErr);
+      return;
+    }
+    const dim = await readImageDimensions(file);
+    const dimErr = validateImageDimensions(dim);
+    if (dimErr) {
+      setGlobalError(dimErr);
+      return;
+    }
+    const existing = uploadedImages.find((img) => img.tempId === tempId);
+    if (!existing) return;
+    try {
+      const { putUrl, storageKey } = await signUploadRequest(file, sessionId, "temp");
+      await uploadWithProgress(putUrl, file, () => {});
+      await cleanupTempUploadsByKeysAction([existing.storage_key]);
+      setUploadedImages((prev) =>
+        prev.map((img) =>
+          img.tempId === tempId
+            ? {
+                ...img,
+                storage_key: storageKey,
+                file_name: file.name,
+                width: dim?.width,
+                height: dim?.height,
+                status: "ready",
+                original_url: storageKey,
+                thumb_url: storageKey,
+                medium_url: storageKey,
+                large_url: storageKey,
+                image_url: storageKey,
+              }
+            : img
+        )
+      );
+    } catch (err) {
+      setGlobalError(err instanceof Error ? err.message : "Replace failed");
+    }
+  }
+
   const hasImages = uploadedImages.length > 0;
   const isUploading = pendingUploads.some((p) => p.uploading);
+  const showcase = uploadedImages.find((i) => i.is_primary) ?? uploadedImages[0];
 
   return (
     <div className="space-y-3" data-cleanup={cleanupTempUploads}>
@@ -225,12 +340,24 @@ export function ProductImageUploader({
         <label className="block text-sm font-medium text-stone-700 mb-2">
           Product Images
         </label>
+        <div
+          className="border border-dashed border-stone-300 rounded p-4 bg-stone-50/50"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const dropped = Array.from(e.dataTransfer.files || []);
+            void processFiles(dropped);
+          }}
+        >
         <div className="flex items-center gap-2 flex-wrap">
           <label className="px-3 py-1.5 border border-stone-300 rounded text-sm font-medium cursor-pointer hover:bg-stone-50">
             {isUploading ? "Uploading…" : "Upload image(s)"}
             <input
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
               multiple
               className="hidden"
               disabled={isUploading}
@@ -241,10 +368,37 @@ export function ProductImageUploader({
         </div>
         {!hasImages && !pendingUploads.length && (
           <p className="text-sm text-stone-500 mt-2">
-            Upload product images. First image will be set as primary.
+            Drag/drop or upload. Allowed: JPG/PNG/WEBP. Max size {Math.round(IMAGE_UPLOAD_CONFIG.maxBytes / (1024 * 1024))}MB. Minimum width {IMAGE_UPLOAD_CONFIG.minWidth}px.
           </p>
         )}
+        </div>
       </div>
+
+      {showcase && (
+        <div className="border border-stone-200 rounded bg-white p-3">
+          <p className="text-xs font-semibold tracking-wide text-stone-600 uppercase mb-2">Storefront preview</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-[11px] text-stone-500 mb-1">Listing (thumb)</p>
+              <div className="relative aspect-square rounded overflow-hidden border border-stone-200 bg-stone-50">
+                <Image src={getListingPreview({ ...showcase, thumb_url: showcase.thumb_url ?? showcase.storage_key })} alt="" fill className="object-cover" unoptimized />
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] text-stone-500 mb-1">PDP (medium)</p>
+              <div className="relative aspect-square rounded overflow-hidden border border-stone-200 bg-stone-50">
+                <Image src={getListingPreview({ ...showcase, thumb_url: showcase.medium_url ?? showcase.storage_key })} alt="" fill className="object-cover" unoptimized />
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] text-stone-500 mb-1">Zoom (large)</p>
+              <div className="relative aspect-square rounded overflow-hidden border border-stone-200 bg-stone-50">
+                <Image src={getListingPreview({ ...showcase, thumb_url: showcase.large_url ?? showcase.storage_key })} alt="" fill className="object-cover" unoptimized />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         {/* Uploaded images */}
@@ -312,15 +466,34 @@ export function ProductImageUploader({
                 className="w-full text-xs px-2 py-1 border border-stone-200 rounded"
                 onBlur={(e) => updateAltText(img.tempId, e.target.value.trim())}
               />
-              <label className="flex items-center gap-1 text-xs">
+              <select
+                defaultValue={img.image_tag ?? ""}
+                className="w-full text-xs px-2 py-1 border border-stone-200 rounded bg-white"
+                onChange={(e) => updateTag(img.tempId, e.target.value as ImageTag)}
+              >
+                <option value="">Tag (optional)</option>
+                <option value="front">front</option>
+                <option value="border">border</option>
+                <option value="pallu">pallu</option>
+                <option value="close-up">close-up</option>
+                <option value="other">other</option>
+              </select>
+              <p className="text-[10px] text-stone-500">
+                {img.width && img.height ? `${img.width}×${img.height}` : "Dimensions unknown"} · {img.status ?? "ready"}
+              </p>
+              <label className="inline-flex items-center justify-center w-full text-xs px-2 py-1 border border-stone-200 rounded cursor-pointer hover:bg-stone-100">
+                Replace
                 <input
-                  type="radio"
-                  name="homepage-image"
-                  checked={img.show_on_homepage}
-                  onChange={() => setShowOnHomepage(img.tempId)}
-                  className="border-stone-300"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    void replaceUploaded(img.tempId, file);
+                    e.currentTarget.value = "";
+                  }}
                 />
-                Homepage
               </label>
             </div>
           </div>
@@ -341,7 +514,7 @@ export function ProductImageUploader({
               />
               {p.uploading && (
                 <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs">
-                  Uploading…
+                  Uploading… {p.progress}%
                 </span>
               )}
               {p.error && (

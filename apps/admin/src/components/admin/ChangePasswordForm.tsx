@@ -1,12 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { changePassword } from "@/lib/admin/auth";
+import { changePassword, sendChangePasswordOtp } from "@/lib/admin/auth";
 
 export function ChangePasswordForm() {
   const [loading, setLoading] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [otpSentTo, setOtpSentTo] = useState<string | null>(null);
+
+  async function handleSendOtp() {
+    setError(null);
+    setSuccess(false);
+    setSendingOtp(true);
+    const result = await sendChangePasswordOtp();
+    setSendingOtp(false);
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+    setOtpSentTo(result.email ?? "your email");
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,17 +47,30 @@ export function ChangePasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-sm">
       <div>
-        <label htmlFor="currentPassword" className="block text-sm font-medium text-stone-700 mb-1">
-          Current password (optional)
+        <label htmlFor="otp" className="block text-sm font-medium text-stone-700 mb-1">
+          Email OTP
         </label>
         <input
-          id="currentPassword"
-          name="currentPassword"
-          type="password"
-          autoComplete="current-password"
+          id="otp"
+          name="otp"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          required
           className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-stone-400"
-          placeholder="Leave blank if not required"
+          placeholder="Enter OTP from email"
         />
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSendOtp}
+            disabled={sendingOtp}
+            className="py-1.5 px-3 border border-stone-300 text-stone-700 text-xs font-medium rounded hover:bg-stone-50 disabled:opacity-50"
+          >
+            {sendingOtp ? "Sending OTP…" : otpSentTo ? "Resend OTP" : "Send OTP"}
+          </button>
+          {otpSentTo && <span className="text-xs text-stone-500">Sent to {otpSentTo}</span>}
+        </div>
       </div>
       <div>
         <label htmlFor="newPassword" className="block text-sm font-medium text-stone-700 mb-1">

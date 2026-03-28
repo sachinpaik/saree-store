@@ -3,7 +3,7 @@ import type { ProductRow } from "./storefront.types";
 
 const SELECT = `
   id, slug, title, sku, price_inr, price_aed, description, stock_status, show_on_homepage, attributes,
-  product_images(id, storage_key, sort_order, alt_text, is_primary, show_on_homepage)
+  product_images(id, storage_key, image_url, original_url, thumb_url, medium_url, large_url, sort_order, alt_text, status, width, height, is_primary, show_on_homepage)
 `;
 
 /**

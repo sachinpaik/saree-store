@@ -21,8 +21,16 @@ type ProductShape = {
   product_images?: {
     id: string;
     storage_key: string;
+    image_url?: string | null;
+    original_url?: string | null;
+    thumb_url?: string | null;
+    medium_url?: string | null;
+    large_url?: string | null;
     sort_order: number;
     alt_text?: string | null;
+    status?: "uploading" | "processing" | "ready" | "failed";
+    width?: number | null;
+    height?: number | null;
     is_primary?: boolean;
     show_on_homepage?: boolean;
   }[];
@@ -35,8 +43,16 @@ function productToSaree(p: ProductShape): Saree {
     .map((img) => ({
       id: img.id,
       storage_key: img.storage_key,
+      image_url: img.image_url ?? null,
+      original_url: img.original_url ?? null,
+      thumb_url: img.thumb_url ?? null,
+      medium_url: img.medium_url ?? null,
+      large_url: img.large_url ?? null,
       sort_order: img.sort_order,
       alt_text: img.alt_text ?? null,
+      status: img.status ?? "ready",
+      width: img.width ?? null,
+      height: img.height ?? null,
       is_primary: img.is_primary ?? false,
       show_on_homepage: img.show_on_homepage ?? false,
     }));

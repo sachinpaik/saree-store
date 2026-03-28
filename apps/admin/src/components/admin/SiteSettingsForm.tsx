@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateSiteSettings } from "@/lib/admin/settings";
+import { HomepageCarouselImageManager } from "./HomepageCarouselImageManager";
+import { CompanyLogoManager } from "./CompanyLogoManager";
 
 type SiteSettingsFormProps = {
   settings: {
@@ -14,12 +16,18 @@ type SiteSettingsFormProps = {
     instagram_url: string;
     support_hours: string;
     homepage_rotation_seconds: string;
+    homepage_carousel_image_keys: string[];
+    company_logo_key: string;
   };
 };
 
 export function SiteSettingsForm({ settings }: SiteSettingsFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [carouselImageKeys, setCarouselImageKeys] = useState<string[]>(
+    settings.homepage_carousel_image_keys ?? []
+  );
+  const [companyLogoKey, setCompanyLogoKey] = useState<string>(settings.company_logo_key ?? "");
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -113,6 +121,29 @@ export function SiteSettingsForm({ settings }: SiteSettingsFormProps) {
           placeholder="5"
           className="w-full px-3 py-2 border border-stone-300 rounded"
         />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-stone-700 mb-2">Company logo</label>
+        <CompanyLogoManager logoKey={companyLogoKey} onChange={setCompanyLogoKey} />
+        <input type="hidden" name="company_logo_key" value={companyLogoKey} />
+        <p className="text-xs text-stone-500 mt-2">
+          The logo is shown in the storefront header and footer. If empty, business name text is used.
+        </p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-stone-700 mb-2">Homepage carousel images</label>
+        <HomepageCarouselImageManager
+          imageKeys={carouselImageKeys}
+          onChange={setCarouselImageKeys}
+        />
+        <input
+          type="hidden"
+          name="homepage_carousel_image_keys"
+          value={JSON.stringify(carouselImageKeys)}
+        />
+        <p className="text-xs text-stone-500 mt-2">
+          These images are used for the homepage carousel and are managed separately from product photos.
+        </p>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button

@@ -13,10 +13,18 @@ type Type = { id: string; name: string; slug: string };
 type Image = {
   id: string;
   storage_key: string;
+  image_url?: string | null;
+  original_url?: string | null;
+  thumb_url?: string | null;
+  medium_url?: string | null;
+  large_url?: string | null;
   sort_order: number;
   alt_text?: string | null;
+  image_tag?: string | null;
+  status?: "uploading" | "processing" | "ready" | "failed";
+  width?: number | null;
+  height?: number | null;
   is_primary?: boolean;
-  show_on_homepage?: boolean;
 };
 
 type UploadedImage = {
@@ -25,7 +33,15 @@ type UploadedImage = {
   file_name: string;
   alt_text?: string;
   is_primary: boolean;
-  show_on_homepage: boolean;
+  image_tag?: string;
+  status?: "uploading" | "processing" | "ready" | "failed";
+  width?: number;
+  height?: number;
+  original_url?: string;
+  thumb_url?: string;
+  medium_url?: string;
+  large_url?: string;
+  image_url?: string;
 };
 
 type Product = {
@@ -77,6 +93,7 @@ export const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(functio
   const [loading, setLoading] = useState(false);
   const [showInactiveAttributes, setShowInactiveAttributes] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [editUploadedImages, setEditUploadedImages] = useState<UploadedImage[]>([]);
   const uploaderRef = useRef<HTMLDivElement | null>(null);
   const isEdit = !!product;
 
@@ -97,6 +114,10 @@ export const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(functio
 
   const handleImagesChange = useCallback((images: UploadedImage[]) => {
     setUploadedImages(images);
+  }, []);
+
+  const handleEditImagesChange = useCallback((images: UploadedImage[]) => {
+    setEditUploadedImages(images);
   }, []);
 
   // Cleanup temp uploads (server action; no API route)
@@ -160,6 +181,9 @@ export const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(functio
     // Add uploaded images data to formData for new products
     if (!isEdit && uploadedImages.length > 0) {
       formData.set("uploaded_images", JSON.stringify(uploadedImages));
+    }
+    if (isEdit && editUploadedImages.length > 0) {
+      formData.set("uploaded_images", JSON.stringify(editUploadedImages));
     }
 
     const result = isEdit
@@ -228,11 +252,9 @@ export const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(functio
       </div>
       <div>
         <label className="block text-sm font-medium text-stone-700 mb-1">SKU</label>
-        <input
-          name="sku"
-          defaultValue={product?.sku ?? ""}
-          className="w-full px-3 py-2 border border-stone-300 rounded"
-        />
+        <p className="w-full px-3 py-2 border border-stone-200 rounded bg-stone-50 text-stone-600 text-sm">
+          {product?.sku ?? "Auto-generated from product ID when you save"}
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -359,15 +381,6 @@ export const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(functio
           />
           <span className="text-sm">New arrival</span>
         </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            name="show_on_homepage"
-            defaultChecked={product?.show_on_homepage ?? false}
-            className="rounded border-stone-300"
-          />
-          <span className="text-sm">Show on homepage</span>
-        </label>
       </div>
 
       {isEdit && inactiveDefinitions.length > 0 && (
@@ -406,7 +419,11 @@ export const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(functio
       {isEdit && product?.id ? (
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-2">Images</label>
-          <ProductImageManager productId={product.id} images={product.product_images ?? []} />
+          <ProductImageManager
+            productId={product.id}
+            images={product.product_images ?? []}
+            onPendingImagesChange={handleEditImagesChange}
+          />
         </div>
       ) : (
         <div ref={uploaderRef}>

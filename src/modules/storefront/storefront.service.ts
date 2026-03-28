@@ -1,6 +1,7 @@
 import { getPublicImageUrl } from "@/lib/media-url";
 import { listApprovedProducts, getApprovedProductBySlug } from "./storefront.repository";
 import type { Saree, SareeImage, ProductRow } from "./storefront.types";
+import { getCardImageUrl, getVisibleProductImages } from "@/lib/product-image";
 
 function rowToSaree(p: ProductRow): Saree {
   const images = (p.product_images ?? [])
@@ -9,17 +10,26 @@ function rowToSaree(p: ProductRow): Saree {
     .map((img) => ({
       id: img.id,
       storage_key: img.storage_key,
+      image_url: img.image_url ?? null,
+      original_url: img.original_url ?? null,
+      thumb_url: img.thumb_url ?? null,
+      medium_url: img.medium_url ?? null,
+      large_url: img.large_url ?? null,
       sort_order: img.sort_order,
       alt_text: img.alt_text ?? null,
+      status: img.status ?? "ready",
+      width: img.width ?? null,
+      height: img.height ?? null,
       is_primary: img.is_primary ?? false,
       show_on_homepage: img.show_on_homepage ?? false,
     })) as SareeImage[];
+  const visible = getVisibleProductImages(images) as SareeImage[];
   return {
     id: p.id,
     slug: p.slug,
     title: p.title,
     sku: p.sku ?? null,
-    images,
+    images: visible,
     price_inr: p.price_inr ?? 0,
     price_aed: p.price_aed ?? 0,
     description: p.description ?? null,
@@ -27,6 +37,36 @@ function rowToSaree(p: ProductRow): Saree {
     show_on_homepage: p.show_on_homepage ?? false,
     attributes: p.attributes ?? undefined,
   };
+}
+
+function toPublicFromMaybeKey(value: string | null | undefined): string | null {
+  const v = value?.trim();
+  if (!v) return null;
+  return v.startsWith("http") ? v : getPublicImageUrl(v);
+}
+
+export function getSareeImageVariantUrl(
+  image: {
+    thumb_url?: string | null;
+    medium_url?: string | null;
+    large_url?: string | null;
+    storage_key?: string | null;
+    image_url?: string | null;
+  },
+  variant: "thumb" | "medium" | "large"
+): string {
+  const order =
+    variant === "thumb"
+      ? [image.thumb_url, image.medium_url, image.large_url]
+      : variant === "medium"
+        ? [image.medium_url, image.large_url, image.thumb_url]
+        : [image.large_url, image.medium_url, image.thumb_url];
+  const candidates = [...order, image.storage_key, image.image_url];
+  for (const candidate of candidates) {
+    const resolved = toPublicFromMaybeKey(candidate);
+    if (resolved) return resolved;
+  }
+  return "";
 }
 
 function pickHomepageImage(saree: Saree): SareeImage | undefined {
@@ -58,7 +98,7 @@ export async function getCarouselImageUrls(limit: number): Promise<string[]> {
   for (const s of list) {
     if (!s.show_on_homepage) continue;
     const img = pickHomepageImage(s);
-    if (img?.storage_key && urls.length < limit) urls.push(getPublicImageUrl(img.storage_key));
+    if (img && urls.length < limit) urls.push(getCardImageUrl(img));
   }
   return urls;
 }

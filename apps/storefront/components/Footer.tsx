@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getSiteSettings, getStoreSettings } from "storefront";
+import Image from "next/image";
+import { getPublicImageUrl, getSiteSettings, getStoreSettings } from "storefront";
 
 export async function Footer() {
   const [siteSettings, storeSettings] = await Promise.all([
@@ -15,6 +16,10 @@ export async function Footer() {
   const instagramUrl = siteSettings?.instagram_url
     ? String(siteSettings.instagram_url)
     : null;
+  const logoKey = siteSettings?.company_logo_key
+    ? String(siteSettings.company_logo_key).trim()
+    : "";
+  const logoUrl = logoKey ? getPublicImageUrl(logoKey) : "";
 
   const cleanWA = whatsappNumber?.replace(/\D/g, "") ?? null;
   const whatsappHref = cleanWA
@@ -30,9 +35,16 @@ export async function Footer() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Brand identity */}
         <div className="mb-10">
-          <p className="font-serif text-foreground text-xl tracking-wide">
-            {businessName}
-          </p>
+          <div className="flex items-center gap-3 mb-1">
+            {logoUrl ? (
+              <span className="relative h-10 w-10 shrink-0 rounded-sm overflow-hidden border border-rim bg-white">
+                <Image src={logoUrl} alt={businessName} fill className="object-contain" sizes="40px" unoptimized />
+              </span>
+            ) : null}
+            <p className="font-serif text-foreground text-xl tracking-wide">
+              {businessName}
+            </p>
+          </div>
           <p className="text-muted text-sm mt-1">
             Premium Kanchipuram silks, direct from weavers.
           </p>
@@ -77,6 +89,14 @@ export async function Footer() {
                   className="hover:text-foreground transition-colors"
                 >
                   Information
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Silk Manufacturing
                 </Link>
               </li>
               {whatsappBulkHref && (

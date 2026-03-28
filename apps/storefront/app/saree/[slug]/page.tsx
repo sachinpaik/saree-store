@@ -4,6 +4,7 @@ import {
   ProductDetailPage,
   getApprovedProductBySlug,
   getApprovedProductSlugs,
+  getApprovedProducts,
   getStoreSettings,
   getProductSpecsForDisplay,
 } from "storefront";
@@ -33,10 +34,13 @@ export default async function Page({ params }: Props) {
   const product = await getApprovedProductBySlug(slug);
   if (!product) notFound();
 
-  const [storeSettings, specs] = await Promise.all([
+  const [storeSettings, specs, allProducts] = await Promise.all([
     getStoreSettings(),
     getProductSpecsForDisplay(product.id, product.attributes),
+    getApprovedProducts(),
   ]);
+
+  const relatedProducts = allProducts.filter((p) => p.slug !== slug).slice(0, 4);
 
   const whatsappNumber = storeSettings?.whatsapp_number?.trim() ?? null;
   const callNumber = storeSettings?.call_number?.trim() ?? null;
@@ -57,6 +61,7 @@ export default async function Page({ params }: Props) {
         template,
       }}
       specs={specs ?? {}}
+      relatedProducts={relatedProducts}
     />
   );
 }

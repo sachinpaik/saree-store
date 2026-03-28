@@ -3,6 +3,7 @@
  * Requires NEXT_PUBLIC_UPLOAD_SIGNER_URL (no in-app signing).
  */
 
+import { fetchWithRetry } from "@/lib/fetch-retry";
 import { createClient } from "@/lib/supabase/client";
 
 export type SignUploadMode = "temp" | "final";
@@ -27,9 +28,10 @@ export async function signUploadRequest(
     );
   }
 
-  const contentType = file.type && /^image\/(jpeg|png|gif|webp)$/i.test(file.type)
-    ? file.type
-    : "image/jpeg";
+  const contentType =
+    file.type && /^(image\/(jpeg|png|gif|webp)|video\/mp4)$/i.test(file.type)
+      ? file.type
+      : "application/octet-stream";
 
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -37,19 +39,23 @@ export async function signUploadRequest(
     throw new Error("Not signed in");
   }
 
-  const res = await fetch(`${signerUrl.replace(/\/$/, "")}/sign-upload`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+  const res = await fetchWithRetry(
+    `${signerUrl.replace(/\/$/, "")}/sign-upload`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType,
+        productId,
+        mode,
+      }),
     },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType,
-      productId,
-      mode,
-    }),
-  });
+    { maxAttempts: 4, baseDelayMs: 500 }
+  );
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as {
       error?: string;

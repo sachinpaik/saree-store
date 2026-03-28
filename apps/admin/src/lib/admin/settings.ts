@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { deleteStorageKeysViaWorker } from "@/lib/storage-worker-client";
 
 export async function updateStoreSettings(formData: FormData) {
   const supabase = createClient();
@@ -26,9 +27,35 @@ export async function updateSiteSettings(formData: FormData) {
   const supabase = createClient();
   const rawRotation = formData.get("homepage_rotation_seconds") as string;
   const homepage_rotation_seconds = rawRotation ? parseInt(rawRotation, 10) : null;
+  const rawCarouselKeys = formData.get("homepage_carousel_image_keys") as string | null;
+  const company_logo_key = ((formData.get("company_logo_key") as string) || "").trim() || null;
+  let homepage_carousel_image_keys: string[] = [];
+  if (rawCarouselKeys?.trim()) {
+    try {
+      const parsed = JSON.parse(rawCarouselKeys);
+      if (Array.isArray(parsed)) {
+        homepage_carousel_image_keys = parsed
+          .map((value) => String(value ?? "").trim())
+          .filter((value) => value.length > 0);
+      }
+    } catch {
+      return { error: "Invalid homepage carousel images data" };
+    }
+  }
 
-  const { data: row } = await supabase.from("site_settings").select("id").limit(1).single();
+  const { data: row } = await supabase
+    .from("site_settings")
+    .select("id, homepage_carousel_image_keys, company_logo_key")
+    .limit(1)
+    .single();
   if (!row) return { error: "No site settings row" };
+
+  const previousKeys = Array.isArray(row.homepage_carousel_image_keys)
+    ? row.homepage_carousel_image_keys
+        .map((value: unknown) => String(value ?? "").trim())
+        .filter((value: string) => value.length > 0)
+    : [];
+  const previousLogoKey = row.company_logo_key ? String(row.company_logo_key).trim() : "";
 
   const { error } = await supabase
     .from("site_settings")
@@ -43,9 +70,26 @@ export async function updateSiteSettings(formData: FormData) {
       homepage_rotation_seconds: Number.isNaN(homepage_rotation_seconds)
         ? null
         : homepage_rotation_seconds,
+      homepage_carousel_image_keys,
+      company_logo_key,
     })
     .eq("id", row.id);
 
   if (error) return { error: error.message };
+  const removedKeys = previousKeys.filter((key: string) => !homepage_carousel_image_keys.includes(key));
+  if (removedKeys.length > 0) {
+    try {
+      await deleteStorageKeysViaWorker(removedKeys);
+    } catch (deleteErr) {
+      console.warn("Failed to delete removed homepage carousel images:", deleteErr);
+    }
+  }
+  if (previousLogoKey && previousLogoKey !== company_logo_key) {
+    try {
+      await deleteStorageKeysViaWorker([previousLogoKey]);
+    } catch (deleteErr) {
+      console.warn("Failed to delete removed company logo:", deleteErr);
+    }
+  }
   return {};
 }

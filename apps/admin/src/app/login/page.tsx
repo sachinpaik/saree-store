@@ -17,7 +17,7 @@ function LoginPageContent() {
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-semibold text-stone-900 mb-1">Admin sign in</h1>
         <p className="text-sm text-stone-600 mb-4">
-          Sign in with your admin email and password.
+          Sign in with your admin email and password, or reset password with OTP.
         </p>
         {error === "access_denied" && (
           <AdminLoginMessage className="mb-6" reason={reason ?? undefined} />

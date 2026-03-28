@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Carousel } from "../components/Carousel";
+import { ProductGrid } from "../components/ProductGrid";
 import type { Product } from "../types/storefront.types";
 
 function buildWhatsAppHref(number: string | null | undefined, message: string): string | null {
@@ -76,15 +77,40 @@ export function HomePage({
 
       {whatsappEnquiryHref && (
         <section className="bg-surface border-b border-rim">
-          <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
+          <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="min-w-0">
               <p className="font-medium text-foreground text-sm">Bulk &amp; Wholesale Enquiries</p>
               <p className="text-muted text-[13px] mt-0.5">
                 Ordering 10+ sarees? We offer trade pricing and fast dispatch.
               </p>
             </div>
-            {/* Bulk strip no longer has its own button; users use main product or information WhatsApp entry points. */}
+            <a
+              href={whatsappEnquiryHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-sm hover:bg-green-700"
+            >
+              WhatsApp for bulk pricing
+            </a>
           </div>
+        </section>
+      )}
+
+      {featuredProducts.length > 0 && (
+        <section className="max-w-6xl mx-auto px-4 py-10 md:py-14">
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mb-6">
+            <div>
+              <h2 className="font-serif text-xl md:text-2xl text-foreground">Featured</h2>
+              <p className="text-sm text-muted mt-1">Selected pieces from our collection.</p>
+            </div>
+            <Link
+              href={browseHref}
+              className="text-sm font-medium text-accentBerry hover:underline"
+            >
+              View all →
+            </Link>
+          </div>
+          <ProductGrid products={featuredProducts} />
         </section>
       )}
     </>

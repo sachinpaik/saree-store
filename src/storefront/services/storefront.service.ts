@@ -1,8 +1,16 @@
 import { createStorefrontSupabaseClient } from "./supabase.client";
-import type { Product, ProductRow, SiteSettings, StoreSettings } from "../types/storefront.types";
+import type {
+  AboutContent,
+  AboutVideo,
+  Product,
+  ProductRow,
+  SiteSettings,
+  StoreSettings,
+} from "../types/storefront.types";
+import { getCardImageUrl, getVisibleProductImages } from "../../lib/product-image";
 
 const SELECT =
-  "id, slug, title, sku, price_inr, price_aed, description, stock_status, show_on_homepage, attributes, product_images(id, storage_key, sort_order, alt_text, is_primary, show_on_homepage)";
+  "id, slug, title, sku, price_inr, price_aed, description, stock_status, show_on_homepage, attributes, product_images(id, storage_key, image_url, original_url, thumb_url, medium_url, large_url, sort_order, alt_text, image_tag, status, width, height, is_primary, show_on_homepage)";
 
 function rowToProduct(row: ProductRow): Product {
   const images = (row.product_images ?? [])
@@ -11,17 +19,27 @@ function rowToProduct(row: ProductRow): Product {
     .map((img) => ({
       id: img.id,
       storage_key: img.storage_key,
+      image_url: img.image_url ?? null,
+      original_url: img.original_url ?? null,
+      thumb_url: img.thumb_url ?? null,
+      medium_url: img.medium_url ?? null,
+      large_url: img.large_url ?? null,
       sort_order: img.sort_order,
       alt_text: img.alt_text ?? null,
+      image_tag: img.image_tag ?? null,
+      status: img.status ?? "ready",
+      width: img.width ?? null,
+      height: img.height ?? null,
       is_primary: img.is_primary ?? false,
       show_on_homepage: img.show_on_homepage ?? false,
     }));
+  const visibleImages = getVisibleProductImages(images) as Product["images"];
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     sku: row.sku ?? null,
-    images,
+    images: visibleImages,
     price_inr: row.price_inr ?? 0,
     price_aed: row.price_aed ?? 0,
     description: row.description ?? null,
@@ -87,15 +105,17 @@ export async function getFeaturedProducts(limit: number): Promise<Product[]> {
 /**
  * Carousel image URLs (direct R2) from featured products. Uses env R2 public base.
  */
-export function getCarouselImageUrls(products: Product[], limit: number): string[] {
+export function getCarouselImageUrls(siteSettings: SiteSettings | null, limit: number): string[] {
   const base = getR2PublicBaseUrl();
   if (!base) return [];
-  const urls: string[] = [];
-  for (const p of products) {
-    const img = p.images.find((i) => i.show_on_homepage) || p.images.find((i) => i.is_primary) || p.images[0];
-    if (img?.storage_key && urls.length < limit) urls.push(`${base}/${img.storage_key}`);
-  }
-  return urls;
+  const imageKeys = Array.isArray(siteSettings?.homepage_carousel_image_keys)
+    ? siteSettings.homepage_carousel_image_keys
+    : [];
+  return imageKeys
+    .map((key) => String(key ?? "").trim())
+    .filter((key) => key.length > 0 && !key.includes(".."))
+    .slice(0, limit)
+    .map((key) => (key.startsWith("http") ? key : `${base}/${key.replace(/^\/+/, "")}`));
 }
 
 function getR2PublicBaseUrl(): string | null {
@@ -116,6 +136,47 @@ export function getPublicImageUrl(storageKey: string): string {
   const base = getR2PublicBaseUrl();
   if (!base) return "";
   return `${base}/${storageKey}`;
+}
+
+function toPublicFromMaybeKey(value: string | null | undefined): string | null {
+  const v = value?.trim();
+  if (!v) return null;
+  if (v.startsWith("http")) return v;
+  return getPublicImageUrl(v) || null;
+}
+
+export function getProductImageVariantUrl(
+  image: {
+    thumb_url?: string | null;
+    medium_url?: string | null;
+    large_url?: string | null;
+    storage_key?: string | null;
+    image_url?: string | null;
+  },
+  variant: "thumb" | "medium" | "large"
+): string {
+  const byVariant =
+    variant === "thumb"
+      ? [image.thumb_url, image.medium_url, image.large_url]
+      : variant === "medium"
+        ? [image.medium_url, image.large_url, image.thumb_url]
+        : [image.large_url, image.medium_url, image.thumb_url];
+  const ordered = [...byVariant, image.storage_key, image.image_url];
+  for (const entry of ordered) {
+    const url = toPublicFromMaybeKey(entry);
+    if (url) return url;
+  }
+  return "";
+}
+
+export function getOptimizedProductImagesForStorefront(images: Product["images"]): Product["images"] {
+  return getVisibleProductImages(images) as Product["images"];
+}
+
+export function getProductCardImageUrl(product: Product): string {
+  const visible = getVisibleProductImages(product.images);
+  const first = visible[0];
+  return first ? getCardImageUrl(first) : "";
 }
 
 /**
@@ -171,4 +232,62 @@ export async function getProductSpecsForDisplay(
     out[keyToLabel[key] ?? key] = v;
   }
   return out;
+}
+
+/**
+ * About content for storefront.
+ * Tries published-only first; falls back to latest record for newer schemas without published column.
+ */
+export async function getAboutContent(): Promise<AboutContent | null> {
+  const supabase = createStorefrontSupabaseClient();
+  const publishedAttempt = await supabase
+    .from("about_content")
+    .select("id, title, intro_text, body_html, updated_at")
+    .eq("published", true)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!publishedAttempt.error && publishedAttempt.data) {
+    return publishedAttempt.data as AboutContent;
+  }
+
+  const { data, error } = await supabase
+    .from("about_content")
+    .select("id, title, intro_text, body_html, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as AboutContent;
+}
+
+/**
+ * About videos for storefront.
+ * Tries published-only first; falls back to all videos for newer schemas without published column.
+ */
+export async function getAboutVideos(): Promise<AboutVideo[]> {
+  const supabase = createStorefrontSupabaseClient();
+  const publishedAttempt = await supabase
+    .from("about_videos")
+    .select(
+      "id, title, description, thumbnail_key, video_360_key, video_720_key, video_1080_key, sort_order, created_at"
+    )
+    .eq("published", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (!publishedAttempt.error && publishedAttempt.data) {
+    return publishedAttempt.data as AboutVideo[];
+  }
+
+  const { data, error } = await supabase
+    .from("about_videos")
+    .select(
+      "id, title, description, thumbnail_key, video_360_key, video_720_key, video_1080_key, sort_order, created_at"
+    )
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  return data as AboutVideo[];
 }

@@ -9,9 +9,9 @@ export function ProductGrid({ products }: { products: Product[] }) {
   }
   return (
     <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 list-none p-0 m-0">
-      {products.map((product) => (
+      {products.map((product, index) => (
         <li key={product.id}>
-          <ProductCard product={product} />
+          <ProductCard product={product} eager={index < 4} />
         </li>
       ))}
     </ul>

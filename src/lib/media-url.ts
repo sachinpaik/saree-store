@@ -40,3 +40,27 @@ export function getMediaUrl(storageKey: string): string {
   const b = base.endsWith("/") ? base.slice(0, -1) : base;
   return `${b}/${storageKey}`;
 }
+
+export function resolveImageVariantUrl(
+  image: {
+    thumb_url?: string | null;
+    medium_url?: string | null;
+    large_url?: string | null;
+    storage_key?: string | null;
+    image_url?: string | null;
+  },
+  variant: "thumb" | "medium" | "large"
+): string {
+  const order =
+    variant === "thumb"
+      ? [image.thumb_url, image.medium_url, image.large_url]
+      : variant === "medium"
+        ? [image.medium_url, image.large_url, image.thumb_url]
+        : [image.large_url, image.medium_url, image.thumb_url];
+  for (const candidate of [...order, image.storage_key, image.image_url]) {
+    if (!candidate) continue;
+    const resolved = getPublicImageUrl(candidate);
+    if (resolved) return resolved;
+  }
+  return "";
+}

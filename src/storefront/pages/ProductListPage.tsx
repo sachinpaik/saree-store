@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ProductGrid } from "../components/ProductGrid";
+import { ProductListClient } from "../components/ProductListClient";
 import type { Product } from "../types/storefront.types";
 
 export function ProductListPage({ products }: { products: Product[] }) {
@@ -38,8 +38,7 @@ export function ProductListPage({ products }: { products: Product[] }) {
           )}
         </header>
 
-        {/* Grid */}
-        <ProductGrid products={products} />
+        <ProductListClient products={products} />
       </div>
     </div>
   );

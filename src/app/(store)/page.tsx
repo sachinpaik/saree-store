@@ -16,7 +16,7 @@ export default async function Page() {
     getFeaturedProducts(FEATURED_LIMIT),
     getSiteSettings().catch(() => null),
   ]);
-  const carouselImageUrls = getCarouselImageUrls(featuredProducts, CAROUSEL_LIMIT);
+  const carouselImageUrls = getCarouselImageUrls(siteSettings, CAROUSEL_LIMIT);
   const rotationSeconds = siteSettings?.homepage_rotation_seconds ?? 5;
 
   return (

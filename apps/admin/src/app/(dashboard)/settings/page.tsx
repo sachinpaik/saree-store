@@ -63,6 +63,9 @@ export default function AdminSettingsPage() {
               siteSettings?.homepage_rotation_seconds != null
                 ? String(siteSettings.homepage_rotation_seconds)
                 : "",
+            homepage_carousel_image_keys:
+              siteSettings?.homepage_carousel_image_keys ?? [],
+            company_logo_key: siteSettings?.company_logo_key ?? "",
           }}
         />
       </section>

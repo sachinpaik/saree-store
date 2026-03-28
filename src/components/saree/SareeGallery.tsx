@@ -3,7 +3,13 @@
 import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import type { SareeImage } from "@/lib/types";
-import { getPublicImageUrl } from "@/lib/media-url";
+import {
+  getProductImageAlt,
+  getProductMainImageUrl,
+  getThumbnailImageUrl,
+  getVisibleProductImages,
+  getZoomImageUrl,
+} from "@/lib/product-image";
 
 const ZOOM_LENS_SIZE = 140;
 const ZOOM_FACTOR = 2.2;
@@ -14,9 +20,10 @@ export function SareeGallery({ images, title }: { images: SareeImage[]; title: s
   const [fullscreen, setFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const list = images.length ? images : [];
-  const currentSrc = list[index] ? getPublicImageUrl(list[index].storage_key) : "";
-  const currentAlt = list[index]?.alt_text ?? title;
+  const list = getVisibleProductImages(images) as SareeImage[];
+  const currentSrc = list[index] ? getProductMainImageUrl(list[index]) : "";
+  const currentZoomSrc = list[index] ? getZoomImageUrl(list[index]) : currentSrc;
+  const currentAlt = getProductImageAlt(list[index], title);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -82,7 +89,7 @@ export function SareeGallery({ images, title }: { images: SareeImage[]; title: s
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={currentSrc}
+              src={currentZoomSrc}
               alt=""
               className="absolute object-cover"
               style={{
@@ -110,7 +117,7 @@ export function SareeGallery({ images, title }: { images: SareeImage[]; title: s
                 i === index ? "border-stone-800" : "border-transparent hover:border-stone-300"
               }`}
             >
-              <Image src={getPublicImageUrl(img.storage_key)} alt={img.alt_text ?? ""} width={56} height={56} className="w-full h-full object-cover" unoptimized />
+              <Image src={getThumbnailImageUrl(img)} alt={getProductImageAlt(img, title)} width={56} height={56} className="w-full h-full object-cover" unoptimized />
             </button>
           ))}
         </div>
@@ -138,7 +145,7 @@ export function SareeGallery({ images, title }: { images: SareeImage[]; title: s
             onClick={(e) => e.stopPropagation()}
           >
             <Image
-              src={currentSrc}
+              src={currentZoomSrc}
               alt={currentAlt}
               fill
               className="object-contain"

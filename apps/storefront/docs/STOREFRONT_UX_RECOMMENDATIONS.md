@@ -1,594 +1,236 @@
-# Storefront UX Recommendations
+# Storefront UX — Current State & Roadmap
 
-**Audience:** Primarily bulk buyers (boutiques, resellers, wholesalers) + retail customers  
-**Stack:** Static Next.js storefront, WhatsApp/Call as conversion path  
-**Core principle:** Every screen should have a clear, frictionless path to WhatsApp. The product is the saree; the sale happens over WhatsApp. The site's job is to get them to that conversation as fast as possible.
+**Audience:** Retail shoppers and bulk buyers (boutiques, resellers, wholesalers)  
+**Stack:** Next.js App Router, static export (`output: 'export'`), Supabase-backed build-time data  
+**Core principle:** The saree is merchandised on the site; the sale completes on WhatsApp or phone. Every screen should surface a clear, low-friction path to contact.
 
----
-
-## Table of Contents
-
-1. [Header](#1-header)
-2. [Home Page](#2-home-page)
-3. [Product Card](#3-product-card)
-4. [Listing Page](#4-listing-page)
-5. [Product Detail Page](#5-product-detail-page)
-6. [Information Page](#6-information-page)
-7. [Footer](#7-footer)
-8. [Priority Summary](#8-priority-summary)
+**Last reviewed:** March 2025 (aligned with `apps/storefront` + `src/storefront`)
 
 ---
 
-## 1. Header
+## Table of contents
 
-### Current
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│                                                                      │
-│                         Saree Store                                  │
-│                                                                      │
-│              Home      Kanchipuram Silks      Information            │
-│                                                                      │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-
-Problems:
-  ✗ Very tall (py-8 md:py-10) — wastes ~15% of viewport
-  ✗ No active link state — user can't tell which page they're on
-  ✗ No WhatsApp shortcut — primary conversion action is buried on product pages
-  ✗ Will break when more categories are added (no mobile menu consideration)
-```
-
-### Recommended
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  Saree Store         Home    Kanchipuram Silks    Info    [WA] Call  │
-└──────────────────────────────────────────────────────────────────────┘
-      │                  │             │               │        │
-   logo left         active link   underlined       compact  green WA
-   serif font        = colored     on hover         pill      icon btn
-
-Mobile:
-┌──────────────────────────────────────┐
-│  Saree Store                [WA] [≡] │
-└──────────────────────────────────────┘
-                                  │  │
-                             whatsapp  hamburger
-
-Improvements:
-  ✓ Single row — compact, saves viewport height
-  ✓ Active nav link has visible state (underline + color)
-  ✓ WhatsApp shortcut always visible top-right
-  ✓ Mobile: hamburger + persistent WhatsApp icon
-```
+1. [Information architecture](#1-information-architecture)
+2. [Design system](#2-design-system)
+3. [Global chrome](#3-global-chrome-header--footer)
+4. [Home](#4-home)
+5. [Collection listing](#5-collection-listing-kanchipuram-silks)
+6. [Product detail](#6-product-detail-sareeslug)
+7. [Information](#7-information)
+8. [Conversion & messaging](#8-conversion--messaging)
+9. [Gap summary & priorities](#9-gap-summary--priorities)
+10. [Data available without schema changes](#10-data-available-without-schema-changes)
 
 ---
 
-## 2. Home Page
+## 1. Information architecture
 
-### Current
+| Route | Purpose | Data source |
+|-------|---------|-------------|
+| `/` | Hero carousel + bulk strip | Featured products (images only for carousel), `site_settings`, `store_settings` |
+| `/kanchipuram-silks` | Full approved catalogue grid | `getApprovedProducts()` |
+| `/saree/[slug]` | Single product story + WhatsApp CTA | `getApprovedProductBySlug`, specs, `store_settings` |
+| `/information` | Trust, wholesale copy, contact | `site_settings`, `store_settings` |
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │                                                                │  │
-│  │                  [image rotates silently]                      │  │
-│  │                                                                │  │
-│  │                                                                │  │
-│  │                      ● ○ ○ ○ ○                                │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  Featured                                                            │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐                            │
-│  │      │  │      │  │      │  │      │                            │
-│  │ img  │  │ img  │  │ img  │  │ img  │                            │
-│  │      │  │      │  │      │  │      │                            │
-│  └──────┘  └──────┘  └──────┘  └──────┘                            │
-│  Title     Title     Title     Title                                │
-│  ₹12,000   ₹8,500    ₹15,000   ₹9,200                               │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-
-Problems:
-  ✗ Carousel has no text, no CTA — just a silent slideshow
-  ✗ "Featured" is generic — no meaning for bulk or retail buyer
-  ✗ No brand statement — first-time visitor has no idea what this store is or who it's for
-  ✗ No bulk enquiry entry point anywhere on the page
-  ✗ Stock status invisible from cards
-```
-
-### Recommended
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │                                                                │  │
-│  │                   [image rotates]                              │  │
-│  │                                                                │  │
-│  │  ┌──────────────────────────────────────┐                      │  │
-│  │  │ Premium Kanchipuram Silks            │ ← overlay card       │  │
-│  │  │ Direct from weavers.                 │   bottom-left        │  │
-│  │  │ Retail & wholesale welcome.          │   semi-transparent   │  │
-│  │  │ [Browse Collection]  [WhatsApp Us]   │                      │  │
-│  │  └──────────────────────────────────────┘                      │  │
-│  │                          ● ○ ○ ○ ○                            │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │  📦 Bulk / Wholesale Enquiries                                 │  │
-│  │  Looking to order 10+ sarees? We offer trade pricing,         │  │
-│  │  custom selection and fast dispatch.                           │  │
-│  │                              [WhatsApp for bulk pricing →]    │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│  ← warm stone/cream background strip, full width                     │
-│                                                                      │
-│  New Arrivals  ·  24 sarees                    [View all →]          │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐                            │
-│  │      │  │      │  │      │  │      │                            │
-│  │ img  │  │ img  │  │ img  │  │ img  │                            │
-│  │      │  │      │  │      │  │      │                            │
-│  └──────┘  └──────┘  └──────┘  └──────┘                            │
-│  Title     Title     Title     [LOW    ← amber badge on card        │
-│  ₹12,000   ₹8,500    ₹15,000    STOCK]                              │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-
-Improvements:
-  ✓ Carousel overlay gives brand statement + two CTAs immediately
-  ✓ Bulk enquiry strip — converts wholesale buyers on first view
-  ✓ "New Arrivals" + count is specific and informative
-  ✓ Low stock badge visible on cards
-  ✓ "View all →" link drives traffic to listing page
-```
+Static params are generated for product slugs at build time (`generateStaticParams`).
 
 ---
 
-## 3. Product Card
+## 2. Design system
 
-### Current
+**Typography**
 
-```
-  ┌────────────────┐
-  │                │
-  │                │
-  │   [image]      │    ← plain image, no overlays
-  │                │
-  │                │
-  └────────────────┘
-  Kanchipuram Pure Silk          ← title, may truncate
-  ₹12,000 · AED 530              ← price inline
+- Body: Inter (`--font-sans`)
+- Headings / logo: Lora (`--font-serif`)
 
-Problems:
-  ✗ No stock status — bulk buyers must click every card to check
-  ✗ No SKU — B2B buyers cross-reference by SKU
-  ✗ Out of stock products look identical to in-stock ones
-  ✗ No urgency signal for "low stock"
-  ✗ 2-column mobile grid makes portrait images very narrow
-```
+**Colour tokens** (`globals.css` + Tailwind)
 
-### Recommended
+- **background** `#fdf4f7` — page canvas (blush)
+- **foreground** `#221012` — primary text
+- **surface** `#fff9fb` — header, footer, cards
+- **muted** `#8a5b5b` — secondary text
+- **rim** (border) `#f0d8df`
+- **accentGold** — small labels (e.g. carousel kicker)
+- **accentBerry** — primary in-carousel CTA (“Browse Collection”)
+- **green-600/700** — WhatsApp actions (consistent with convention)
 
-```
-  ┌────────────────┐
-  │                │
-  │                │ ← [LOW STOCK] amber pill, top-right corner
-  │   [image]      │    OR
-  │                │   [OUT OF STOCK] grey overlay on entire image
-  │                │
-  └────────────────┘
-  KS-001                         ← SKU, muted small text above title
-  Kanchipuram Pure Silk
-  ₹12,000                        ← INR large/primary
-  AED 530                        ← AED small/muted below
+**Layout**
 
-Stock badge detail:
-  In stock     → no badge (clean)
-  Low stock    → [LOW STOCK]  amber pill top-right
-  Out of stock → full image grey overlay + "Out of stock" centered text
-
-Improvements:
-  ✓ Stock visible at a glance — bulk buyers scan without clicking
-  ✓ SKU visible — B2B reference without opening product
-  ✓ Clear price hierarchy — INR primary, AED secondary
-  ✓ Out of stock greyed out — buyer skips instantly
-```
+- Content max width: `max-w-6xl` (listing, home strip); product detail `max-w-5xl`
+- Product grid: `grid-cols-2 sm:grid-cols-3 md:grid-cols-4`
 
 ---
 
-## 4. Listing Page (`/kanchipuram-silks`)
+## 3. Global chrome (header + footer)
 
-### Current
+### Header — as implemented
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Kanchipuram Silks                                                   │
-│  Browse our collection of Kanchipuram and silk sarees.               │
-│                                                                      │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐                            │
-│  │ img  │  │ img  │  │ img  │  │ img  │                            │
-│  └──────┘  └──────┘  └──────┘  └──────┘                            │
-│  Title     Title     Title     Title                                │
-│  ₹price    ₹price    ₹price    ₹price                               │
-│                                                                      │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐                            │
-│  │ img  │  │ img  │  │ img  │  │ img  │                            │
-│  └──────┘  └──────┘  └──────┘  └──────┘                            │
-│  ...                                                                 │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+- **Sticky** bar (`h-14`), blurred surface, bottom border
+- **Brand:** `business_name` from `site_settings` (fallback “Saree Store”), serif, links home
+- **Desktop nav:** Home, Kanchipuram Silks, Info — **active route** shown with bottom border + foreground colour
+- **Actions:** WhatsApp pill (icon + “WhatsApp” from `sm` breakpoint); Call (md+); mobile **hamburger** with nav + Call
+- Default WhatsApp prefill: *“Hi, I'd like to enquire about your saree collection.”*
 
-Problems:
-  ✗ No product count — "how many are there?"
-  ✗ No sort or filter controls
-  ✗ Stock status invisible from grid
-  ✗ No SKU on cards
-  ✗ Description is one generic line — no value signal
-```
+### Footer — as implemented
 
-### Recommended
+- **Tagline:** “Premium Kanchipuram silks, direct from weavers.” + “Retail & wholesale welcome.”
+- **Three columns:** Collections (links), Quick Links (Home, Information, **Bulk Enquiries** → WhatsApp with bulk-oriented message), Contact (tel, WhatsApp, Instagram when configured)
+- **Copyright** with dynamic year and `business_name`
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Home > Kanchipuram Silks           ← breadcrumb                    │
-│                                                                      │
-│  Kanchipuram Silks          24 sarees  ← count next to heading      │
-│  Pure silk sarees, sourced directly from Kanchipuram weavers.       │
-│                                                                      │
-│  Sort by: [Price ↑↓] [Newest] [Availability]   ← sort controls      │
-│                                                                      │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐                            │
-│  │      │  │      │  │[LOW  │  │[OUT  │  ← stock badges on cards   │
-│  │ img  │  │ img  │  │STOCK]│  │STOCK]│                            │
-│  └──────┘  └──────┘  └──────┘  └──────┘                            │
-│  KS-001    KS-002    KS-003    KS-004   ← SKU visible               │
-│  Title     Title     Title     Title                                │
-│  ₹12,000   ₹8,500    ₹15,000   ₹9,200                               │
-│  AED 530   AED 378                                                   │
-│                                                                      │
-│  ┌──────┐  ...                                                       │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+### UX notes
 
-Improvements:
-  ✓ Breadcrumb — user knows where they are
-  ✓ Product count — sets expectation for how long browsing takes
-  ✓ Sort controls — bulk buyers sort by price; retail by newest
-  ✓ Stock badges on cards — eliminates need to click into every product
-  ✓ SKU on card — B2B reference without opening product
-  ✓ Richer description — signals quality and sourcing
-```
+- Header and footer match earlier recommendations for compact chrome, persistent WhatsApp, and footer contact/social.
+- **Future:** If more collections ship, extend `NAV_LINKS` and footer Collections list in parallel.
 
 ---
 
-## 5. Product Detail Page (`/saree/[slug]`)
+## 4. Home
 
-### Current
+### As implemented
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ← Back to Kanchipuram Silks                                         │
-│                                                                      │
-│  ┌───────────────────┐   ┌─────────────────────────────────────────┐ │
-│  │                   │   │ Kanchipuram Pure Silk Saree             │ │
-│  │                   │   │ KS-001 · Product code                   │ │
-│  │   [main image]    │   │                                         │ │
-│  │                   │   │ ₹12,000 · AED 530                       │ │
-│  │                   │   │                                         │ │
-│  │                   │   │ Stock: In stock                         │ │
-│  └───────────────────┘   │                                         │ │
-│  [t1][t2][t3]            │ Description                             │ │
-│  thumbnails              │ Some text about the saree...            │ │
-│                          │                                         │ │
-│                          │ Specifications                          │ │
-│                          │ Fabric     Pure Silk                    │ │
-│                          │ Zari       Gold                         │ │
-│                          │ Length     5.5m                         │ │
-│                          │                                         │ │
-│                          │ [WhatsApp]  [Call]                      │ │
-│                          │  green sm    outline sm                 │ │
-│                          └─────────────────────────────────────────┘ │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+- **Carousel** (`aspect-[4/3]` / `md:aspect-[21/9]`): rotates through image URLs derived from featured products; dot indicators; optional empty state.
+- **Overlay card** (bottom-left): kicker “Premium Collection”, title “Kanchipuram Silks”, line “Direct from weavers. Retail & wholesale welcome.”, **Browse Collection** (berry) + **WhatsApp Us** (outline + icon).
+- **Bulk strip** (surface band): headline “Bulk & Wholesale Enquiries” and supporting line; **only renders when a WhatsApp number exists**. There is **no dedicated button** in the strip (by design in code — users are pointed to other entry points).
 
-Problems:
-  ✗ Back link hardcoded to one category — breaks for future categories
-  ✗ Price: "₹12,000 · AED 530" inline — no hierarchy between currencies
-  ✗ "Stock: In stock" raw — no quantity context, no urgency for bulk buyers
-  ✗ Specs list: label and value side-by-side, no visual separation, hard to scan
-  ✗ WhatsApp + Call buttons are small, no icons, not prominent
-  ✗ No bulk enquiry variant of WhatsApp message
-  ✗ No breadcrumb
-  ✗ No related products — dead end after viewing
-  ✗ No share button
-```
+### Gaps
 
-### Recommended
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Home > Kanchipuram Silks > Kanchipuram Pure Silk    ← breadcrumb   │
-│                                                                      │
-│  ┌───────────────────┐   ┌─────────────────────────────────────────┐ │
-│  │                   │   │ Kanchipuram Pure Silk Saree             │ │
-│  │                   │   │ SKU: KS-001                             │ │
-│  │   [main image]    │   │                                         │ │
-│  │                   │   │ ₹12,000          ← INR large, primary   │ │
-│  │                   │   │ AED 530          ← AED small, muted     │ │
-│  │                   │   │                                         │ │
-│  └───────────────────┘   │ ● In stock  (Limited qty available)     │ │
-│  [t1][t2][t3]  [share↗]  │  ← coloured dot + context              │ │
-│                          │                                         │ │
-│                          │ Description                             │ │
-│                          │ ...                                     │ │
-│                          │                                         │ │
-│                          │ Specifications                          │ │
-│                          │ ─────────────────────────────────────── │ │
-│                          │ Fabric          Pure Silk               │ │
-│                          │ ─────────────────────────────────────── │ │
-│                          │ Zari            Real Gold Zari          │ │
-│                          │ ─────────────────────────────────────── │ │
-│                          │ Length          5.5m                    │ │
-│                          │ ─────────────────────────────────────── │ │
-│                          │                                         │ │
-│                          │ ┌─────────────────────────────────────┐ │ │
-│                          │ │  WhatsApp    ← full width, green    │ │ │
-│                          │ │  📱 Enquire about this saree        │ │ │
-│                          │ └─────────────────────────────────────┘ │ │
-│                          │ ┌─────────────────────────────────────┐ │ │
-│                          │ │  WhatsApp (Bulk)  ← second variant  │ │ │
-│                          │ │  📦 Request bulk / wholesale quote  │ │ │
-│                          │ └─────────────────────────────────────┘ │ │
-│                          │ ┌─────────────────────────────────────┐ │ │
-│                          │ │  📞 Call us   ← outline, secondary  │ │ │
-│                          │ └─────────────────────────────────────┘ │ │
-│                          └─────────────────────────────────────────┘ │
-│                                                                      │
-│  ─────────────────────────────────────────────────────────────────── │
-│  More Kanchipuram Silks                               [View all →]   │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐                            │
-│  │ img  │  │ img  │  │ img  │  │ img  │                            │
-│  └──────┘  └──────┘  └──────┘  └──────┘                            │
-│  Title     Title     Title     Title                                │
-│  ₹price    ₹price    ₹price    ₹price                               │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-
-Improvements:
-  ✓ Breadcrumb — user knows full path
-  ✓ Price hierarchy: INR large + primary, AED small + muted
-  ✓ Stock dot + context: "Limited qty available" creates urgency for bulk buyers
-  ✓ Specs: alternating row dividers, two-column aligned — scannable at a glance
-  ✓ WhatsApp full-width, green, prominent with icon — primary CTA
-  ✓ Bulk WhatsApp variant — separate pre-filled message for wholesale buyers
-  ✓ Call as clear secondary CTA
-  ✓ Share button on gallery — buyer sends link to colleague/partner
-  ✓ Related products — keeps buyer browsing, not a dead end
-```
+- **`featuredProducts` is loaded in `app/page.tsx` but not rendered** as a product grid on the home page. Buyers landing on `/` see the carousel and bulk strip only — no “New arrivals / Featured” row unless they click into the collection.
+- Bulk strip could add a single **WhatsApp (bulk)** CTA for parity with the overlay and footer.
 
 ---
 
-## 6. Information Page
+## 5. Collection listing (`/kanchipuram-silks`)
 
-### Current
+### As implemented
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Information                                                         │
-│                                                                      │
-│  About                                                               │
-│  We curate a small selection of Kanchipuram and silk sarees for      │
-│  those who value quality and tradition.                              │
-│                                                                      │
-│  Authenticity & Quality                                              │
-│  We source directly from weavers and verified suppliers...           │
-│                                                                      │
-│  Care Instructions                                                   │
-│  Store in a cool, dry place...                                       │
-│                                                                      │
-│  Contact                                                             │
-│  For enquiries about a specific saree, custom orders or bulk         │
-│  requests, please reach out via the contact details we provide.      │
-│  ← provides no actual contact details                                │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+- **Breadcrumb:** Home / Kanchipuram Silks
+- **H1** + short positioning copy (boutiques, resellers, individual buyers)
+- **Count:** “*N* saree(s) in this collection” when `N > 0`
+- **Product grid** via `ProductGrid` → `ProductCard`
 
-Problems:
-  ✗ "Contact" section provides zero actual contact information — dead end
-  ✗ No WhatsApp link or phone number anywhere on the page
-  ✗ No bulk/wholesale specific section
-  ✗ No FAQ — buyers with common questions have to enquire for basics
-  ✗ Content is placeholder-thin throughout
-```
+### Gaps
 
-### Recommended
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  [Header]                                                            │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Information                                                         │
-│                                                                      │
-│  About                                                               │
-│  [Real brand story — sourcing, weavers, heritage, years in           │
-│  business, what makes these sarees special]                          │
-│                                                                      │
-│  Authenticity & Quality                                              │
-│  [Specific quality markers, certification, how to verify,           │
-│  direct weaver sourcing detail]                                      │
-│                                                                      │
-│  Care Instructions                                                   │
-│  [Dry cleaning, folding with soft cloth, storage tips...]            │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │  📦 For Wholesale & Bulk Buyers                                │  │
-│  │                                                                │  │
-│  │  Minimum order:   10 pieces                                    │  │
-│  │  Lead time:       3–7 business days                            │  │
-│  │  Samples:         Available on request                         │  │
-│  │  Payment:         Bank transfer, UPI, international wire       │  │
-│  │  Delivery:        India & UAE (DHL/FedEx)                      │  │
-│  │                                                                │  │
-│  │  [WhatsApp for wholesale pricing →]                            │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│                                                                      │
-│  Frequently Asked Questions                                          │
-│  ▸ Do you ship internationally?                                      │
-│  ▸ What is the minimum order for bulk?                               │
-│  ▸ Can I get a sample before placing a large order?                  │
-│  ▸ What is the return/exchange policy?                               │
-│  ▸ How do I verify authenticity of a Kanchipuram saree?              │
-│                                                                      │
-│  Contact                                                             │
-│  ┌──────────────────────────────────────┐                            │
-│  │  📱 WhatsApp    +91 XXXXX XXXXX      │  ← from site_settings     │
-│  │  📞 Phone       +91 XXXXX XXXXX      │                            │
-│  │  ✉  Email       hello@yourstore.com  │                            │
-│  │  🕐 Hours       Mon–Sat, 10am–7pm    │                            │
-│  │                                      │                            │
-│  │  [Open WhatsApp →]                   │                            │
-│  └──────────────────────────────────────┘                            │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-
-Improvements:
-  ✓ Real contact details from site_settings (you already have them)
-  ✓ Wholesale/bulk section — dedicated entry point for B2B buyers
-  ✓ FAQ — deflects common questions, builds confidence pre-enquiry
-  ✓ WhatsApp CTA on this page — buyer can act immediately
-  ✓ Hours — sets response time expectations (important for B2B)
-```
+- **No sort or filter** (price, newest, availability).
+- **Product cards omit price and stock** even though `price_inr`, `price_aed`, and `stock_status` exist on the `Product` type and are populated in `storefront.service`.
 
 ---
 
-## 7. Footer
+## 6. Product detail (`/saree/[slug]`)
 
-### Current
+### As implemented
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│  Saree Store                 Home   Kanchipuram Silks   Information  │
-│                                                                      │
-│  ──────────────────────────────────────────────────────────────────  │
-│               © 2025 Saree Store. All rights reserved.               │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
+- **Breadcrumb:** Home / Kanchipuram Silks / product title (truncated on small screens)
+- **Gallery:** Main image + thumbnail strip; keyboard-friendly thumb `button`s
+- **Title** + **SKU** (when present)
+- **Description** (prose) and **Specifications** as a bordered `dl` with two-column rows
+- **WhatsApp:** full-width green button; sublabel on `sm+`: “Enquire about this saree”
+- Client builds `wa.me` link with **current page URL** as the message body (so the buyer sends the product link)
 
-Problems:
-  ✗ No contact info — buyers expect phone/WhatsApp in footer
-  ✗ No social media links (Instagram critical for saree buyers)
-  ✗ No wholesale/bulk call to action
-  ✗ No tagline — zero brand identity
-```
+### Gaps
 
-### Recommended
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│  Saree Store                                                         │
-│  Premium Kanchipuram silks, direct from weavers.   ← tagline        │
-│  Retail & wholesale welcome.                                         │
-│                                                                      │
-│  ──────────────────────────────────────────────────────────────────  │
-│                                                                      │
-│  Collections          Quick Links          Contact                   │
-│  ─────────────        ───────────          ───────                   │
-│  Kanchipuram Silks    Home                 📱 +91 XXXXX XXXXX        │
-│  [future cat 2]       Information          📲 WhatsApp us            │
-│  [future cat 3]       Bulk Enquiries       📸 Instagram              │
-│                                                                      │
-│  ──────────────────────────────────────────────────────────────────  │
-│               © 2025 Saree Store. All rights reserved.               │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-
-Mobile footer (stacked):
-┌──────────────────────────────────────┐
-│  Saree Store                         │
-│  Premium Kanchipuram silks...        │
-│                                      │
-│  📱 +91 XXXXX XXXXX                  │
-│  📲 WhatsApp us                      │
-│  📸 Instagram                        │
-│                                      │
-│  Home  |  Kanchipuram Silks  |  Info │
-│  © 2025 Saree Store                  │
-└──────────────────────────────────────┘
-
-Improvements:
-  ✓ Tagline — instant brand identity, signals B2B+retail welcome
-  ✓ 3-column layout: Collections / Quick Links / Contact
-  ✓ Contact column: phone, WhatsApp, Instagram — all from site_settings
-  ✓ Scales with future categories in "Collections" column
-  ✓ Mobile: gracefully stacked
-```
+- **No visible INR/AED pricing** on the page.
+- **No stock / urgency line** (`stock_status` not surfaced).
+- **No Call button** on the detail column (header/footer still offer Call).
+- **`whatsapp_message_template` from `store_settings` is passed from the server but the client link does not append the template text** — only the URL is sent. If product-specific copy is required, the link builder should combine template + URL (or template with `{title}` / `{sku}` placeholders).
+- **No related products**, **no share** control on the gallery.
+- **No “Back” link** (breadcrumb replaces a single back target; acceptable if breadcrumb stays visible).
 
 ---
 
-## 8. Priority Summary
+## 7. Information
 
-| # | Change | Screen | Impact | Why first |
-|---|--------|--------|--------|-----------|
-| 🔴 1 | Add WhatsApp + brand statement overlay on carousel | Home | 🔴 High | Bulk buyers have zero CTA on landing |
-| 🔴 2 | Add bulk enquiry strip on homepage | Home | 🔴 High | B2B buyers need explicit invitation |
-| 🔴 3 | Real contact details on Information page | Info | 🔴 High | Contact section is currently a dead end |
-| 🔴 4 | Stock badge on product cards | Card / Listing | 🔴 High | Bulk buyers scan stock before clicking |
-| 🟡 5 | Full-width WhatsApp (retail + bulk) with icons on detail page | Detail | 🟡 Medium | Primary conversion is under-played |
-| 🟡 6 | SKU visible on product cards | Card / Listing | 🟡 Medium | B2B buyers reference by SKU |
-| 🟡 7 | Compact header (single row + persistent WhatsApp icon) | Header | 🟡 Medium | Saves viewport, always-visible conversion |
-| 🟡 8 | Price hierarchy: INR primary, AED muted secondary | Detail / Card | 🟡 Medium | Clarity for dual-currency audience |
-| 🟡 9 | Breadcrumb on listing + detail pages | Listing / Detail | 🟡 Medium | Navigation clarity |
-| 🟡 10 | Wholesale section + FAQ on Information page | Info | 🟡 Medium | Deflects common questions, builds trust |
-| 🟢 11 | Related products strip on detail page | Detail | 🟢 Low | Keeps buyers browsing |
-| 🟢 12 | Sort controls on listing page | Listing | 🟢 Low | Convenience for larger catalogues |
-| 🟢 13 | Share button on product gallery | Detail | 🟢 Low | Buyer shares with colleague before ordering |
-| 🟢 14 | Instagram + contact in footer | Footer | 🟢 Low | Completeness, social proof |
-| 🟢 15 | Product count ("24 sarees") on listing page | Listing | 🟢 Low | Sets expectations for browsing effort |
+### As implemented
+
+- **Enquiry hub** H1 + explainer; primary **WhatsApp us** when number configured; pointer to open a saree page for item-specific buttons
+- **Wholesale & bulk** card: prose + bullets (MOQ ~10, lead time, payment)
+- **Three short columns:** About selection, Authenticity, Care
+- **Contact details** tile: WhatsApp number, phone, email (mailto), support hours (default copy if missing)
+
+### Gaps
+
+- **`whatsappBulkHref` is constructed in the page but not used** — bulk buyers rely on footer “Bulk Enquiries” or generic “WhatsApp us”. Adding a second button or linking the wholesale card to the bulk `wa.me` text would match intent.
+- **No FAQ** accordion yet.
 
 ---
 
-## Data already available (no backend changes needed)
+## 8. Conversion & messaging
 
-Most recommendations can be implemented using data you already store:
+**WhatsApp entry points today**
 
-| Recommendation | Existing field |
-|----------------|---------------|
-| WhatsApp button/link | `store_settings.whatsapp_number` |
-| Call button | `store_settings.call_number` |
-| WhatsApp message | `store_settings.whatsapp_message_template` |
-| Contact phone in footer/info | `site_settings.contact_phone` |
-| Contact WhatsApp | `site_settings.contact_whatsapp` |
-| Contact email | `site_settings.contact_email` |
-| Business hours | `site_settings.support_hours` |
-| Instagram link | `site_settings.instagram_url` |
+| Location | Prefill / behaviour |
+|----------|---------------------|
+| Header | Generic collection enquiry |
+| Home carousel | Generic “enquire about collection” |
+| Home bulk strip | (no link in strip) |
+| Footer quick link “Bulk Enquiries” | Bulk / wholesale ask |
+| Footer “WhatsApp us” | Generic |
+| Information | “question about sarees” |
+| Product detail | **Product page URL only** |
+
+**Consistency opportunity:** Align detail-page messages with `whatsapp_message_template` (e.g. prepend “Interested in: {title} ({sku})” + newline + URL).
+
+---
+
+## 9. Gap summary & priorities
+
+### Shipped since earlier UX doc (high level)
+
+- Compact sticky header with active nav, WhatsApp, Call, mobile menu
+- Carousel overlay with brand line + Browse + WhatsApp
+- Footer tagline, columns, contact, Instagram, bulk link
+- Listing breadcrumbs, count, stronger description
+- Detail breadcrumbs, SKU, structured specs, prominent WhatsApp
+- Information page with real contact fields and wholesale copy
+
+### Highest impact remaining
+
+| Priority | Item | Rationale |
+|----------|------|-----------|
+| P0 | Show **price (INR primary, AED secondary)** on cards and PDP | Buyers cannot evaluate or compare without opening admin or asking on WhatsApp |
+| P0 | Show **stock_status** on cards and PDP (badge + out-of-stock treatment) | Data exists; reduces pointless enquiries |
+| P1 | Render **featured / new arrivals grid** on home (data already fetched) | Uses existing `featuredProducts`; shortens path to products |
+| P1 | **Bulk WhatsApp CTA** on home strip and/or Information wholesale card | Completes the bulk funnel without scrolling to footer |
+| P1 | Use **`whatsapp_message_template` + URL** on product detail | Matches admin configuration and B2B expectations |
+| P2 | **Call** on product detail as secondary CTA | Same pattern as header |
+| P2 | **Sort** on listing (price, newest) | Helps as catalogue grows |
+| P2 | **FAQ** on Information | Reduces repeated WhatsApp questions |
+| P3 | **Related products** on PDP | Reduces dead ends |
+| P3 | **Share** on gallery | Partner / stylist forwards link |
+
+---
+
+## 10. Data available without schema changes
+
+| UX need | Source |
+|---------|--------|
+| WhatsApp / Call | `store_settings.whatsapp_number`, `call_number` |
+| WhatsApp template | `store_settings.whatsapp_message_template` (`{title}`, `{sku}`) |
 | Business name | `site_settings.business_name` |
-| Stock badge colour | `product.stock_status` (in_stock / low_stock / out_of_stock) |
-| SKU on cards | `product.sku` |
+| Contact display | `contact_email`, `support_hours`, `instagram_url` (and store numbers) |
+| Carousel timing | `site_settings.homepage_rotation_seconds` |
+| Price | `product.price_inr`, `product.price_aed` |
+| Stock | `product.stock_status` (`in_stock` / `low_stock` / `out_of_stock`) |
+| SKU | `product.sku` |
 
-The only net-new content needed is: bulk/wholesale policy text (MOQ, lead times, payment, samples) and FAQ answers — these can be added as static text in the Information page or stored as `site_settings` fields.
+**Net-new copy** (optional): FAQ answers, longer brand story — can remain static in `information/page.tsx` or move to `site_settings` later.
+
+---
+
+**Per-page wireframes:** See [STOREFRONT_SCREEN_LAYOUTS.md](./STOREFRONT_SCREEN_LAYOUTS.md) for ASCII layouts of header, footer, home, listing, card, detail, and information.
+
+---
+
+## Appendix — Key files (for implementers)
+
+| Area | Path |
+|------|------|
+| Layout shell | `apps/storefront/app/layout.tsx` |
+| Home route | `apps/storefront/app/page.tsx` |
+| Home UI | `src/storefront/pages/HomePage.tsx` |
+| Header client | `apps/storefront/components/HeaderInner.tsx` |
+| Footer | `apps/storefront/components/Footer.tsx` |
+| Listing | `src/storefront/pages/ProductListPage.tsx` |
+| Card | `src/storefront/components/ProductCard.tsx` |
+| Detail | `src/storefront/pages/ProductDetailPage.tsx` |
+| Information | `apps/storefront/app/information/page.tsx` |
+| Tokens | `apps/storefront/app/globals.css`, `apps/storefront/tailwind.config.ts` |

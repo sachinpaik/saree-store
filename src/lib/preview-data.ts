@@ -22,7 +22,15 @@ import { isPreviewModeEnabled } from "@/app/actions/preview-mode";
 type DraftImage = {
   id?: string;
   storage_key: string;
+  image_url?: string | null;
+  original_url?: string | null;
+  thumb_url?: string | null;
+  medium_url?: string | null;
+  large_url?: string | null;
   alt_text?: string | null;
+  status?: "uploading" | "processing" | "ready" | "failed";
+  width?: number | null;
+  height?: number | null;
   is_primary?: boolean;
   show_on_homepage?: boolean;
   sort_order: number;
@@ -54,7 +62,7 @@ export async function loadProductForPreview(productId: string) {
       .from("products")
       .select(`
         *,
-        product_images(id, storage_key, sort_order, alt_text, is_primary, show_on_homepage)
+        product_images(id, storage_key, image_url, original_url, thumb_url, medium_url, large_url, sort_order, alt_text, status, width, height, is_primary, show_on_homepage)
       `)
       .eq("id", productId)
       .single();
@@ -121,8 +129,16 @@ export async function loadProductForPreview(productId: string) {
         (product as { product_images: unknown[] }).product_images = draftImages.map((img, idx) => ({
           id: img.id || `draft-${idx}`,
           storage_key: img.storage_key,
+          image_url: img.image_url ?? null,
+          original_url: img.original_url ?? null,
+          thumb_url: img.thumb_url ?? null,
+          medium_url: img.medium_url ?? null,
+          large_url: img.large_url ?? null,
           sort_order: img.sort_order,
           alt_text: img.alt_text,
+          status: img.status ?? "ready",
+          width: img.width ?? null,
+          height: img.height ?? null,
           is_primary: img.is_primary,
           show_on_homepage: img.show_on_homepage,
         }));
@@ -163,7 +179,7 @@ export async function loadProductsForPreview(filters?: {
       .from("products")
       .select(`
         *,
-        product_images(id, storage_key, sort_order, alt_text, is_primary, show_on_homepage)
+        product_images(id, storage_key, image_url, original_url, thumb_url, medium_url, large_url, sort_order, alt_text, status, width, height, is_primary, show_on_homepage)
       `)
       .eq("status", "approved")
       .order("created_at", { ascending: false });
@@ -245,8 +261,16 @@ export async function loadProductsForPreview(filters?: {
             product.product_images = draftImages.map((img, idx) => ({
               id: img.id || `draft-${idx}`,
               storage_key: img.storage_key,
+              image_url: img.image_url ?? null,
+              original_url: img.original_url ?? null,
+              thumb_url: img.thumb_url ?? null,
+              medium_url: img.medium_url ?? null,
+              large_url: img.large_url ?? null,
               sort_order: img.sort_order,
               alt_text: img.alt_text,
+              status: img.status ?? "ready",
+              width: img.width ?? null,
+              height: img.height ?? null,
               is_primary: img.is_primary,
               show_on_homepage: img.show_on_homepage,
             }));

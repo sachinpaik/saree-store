@@ -1,11 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { PriceLine } from "./PriceLine";
-import { getPublicImageUrl } from "@/lib/media-url";
+import {
+  getCardImageUrl,
+  getPrimaryProductImage,
+  getProductImageAlt,
+} from "@/lib/product-image";
 import type { Saree } from "@/lib/types";
 
 export function SareeCard({ saree }: { saree: Saree }) {
-  const imageUrl = saree.images[0]?.storage_key ? getPublicImageUrl(saree.images[0].storage_key) : undefined;
+  const primary = getPrimaryProductImage({ images: saree.images });
+  const imageUrl = primary ? getCardImageUrl(primary) : undefined;
 
   return (
     <Link href={`/saree/${saree.slug}`} className="group block">
@@ -13,10 +18,10 @@ export function SareeCard({ saree }: { saree: Saree }) {
         {imageUrl ? (
           <Image
             src={imageUrl}
-            alt=""
+            alt={getProductImageAlt(primary, saree.title)}
             fill
             className="object-cover transition duration-300 group-hover:scale-[1.02]"
-            sizes="(max-width: 768px) 100vw, 400px"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             unoptimized
           />
         ) : (

@@ -35,6 +35,8 @@ export interface SiteSettings {
   instagram_url: string | null;
   support_hours: string | null;
   homepage_rotation_seconds: number | null;
+  homepage_carousel_image_keys: string[];
+  company_logo_key: string | null;
   updated_at: string;
 }
 
@@ -72,8 +74,17 @@ export interface ProductImage {
   id: string;
   product_id: string;
   storage_key: string;
+  image_url?: string | null;
+  original_url?: string | null;
+  thumb_url?: string | null;
+  medium_url?: string | null;
+  large_url?: string | null;
   sort_order: number;
   alt_text?: string | null;
+  image_tag?: string | null;
+  status?: "uploading" | "processing" | "ready" | "failed";
+  width?: number | null;
+  height?: number | null;
   is_primary?: boolean;
   show_on_homepage?: boolean;
   created_at: string;

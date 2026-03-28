@@ -1,6 +1,27 @@
 import { createClient } from "@/lib/supabase/client";
 import { deleteStorageKeysViaWorker, finalizeTempUploadsViaWorker } from "@/lib/storage-worker-client";
 import { getActiveAttributeDefinitions } from "@/lib/data/attribute-definitions";
+import {
+  buildVariantPayloadFromFinalKey,
+  type UploadedImagePayload,
+} from "@/lib/admin/image-variants";
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function buildProductCodeFromId(id: string): string {
+  const compact = id.replace(/-/g, "").toUpperCase();
+  return `P-${compact.slice(0, 8)}`;
+}
+
+function buildSkuFromId(id: string): string {
+  const compact = id.replace(/-/g, "").toUpperCase();
+  return `SKU-${compact.slice(0, 8)}`;
+}
 
 async function saveProductAttributeValues(
   productId: string,
@@ -36,14 +57,8 @@ export async function createProduct(formData: FormData) {
   }
 
   const title = formData.get("title") as string;
-  const slug =
-    (formData.get("slug") as string) ||
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+  const slug = (formData.get("slug") as string) || slugify(title);
   const typeId = (formData.get("type_id") as string) || null;
-  const sku = (formData.get("sku") as string) || null;
   const priceInr = parseFloat((formData.get("price_inr") as string) || "0");
   const priceAed = parseFloat((formData.get("price_aed") as string) || "0");
   const description = (formData.get("description") as string) || null;
@@ -63,12 +78,7 @@ export async function createProduct(formData: FormData) {
 
   // Get uploaded images data from FormData
   const uploadedImagesStr = formData.get("uploaded_images") as string | null;
-  let uploadedImages: Array<{
-    storage_key: string;
-    alt_text?: string;
-    is_primary: boolean;
-    show_on_homepage: boolean;
-  }> = [];
+  let uploadedImages: UploadedImagePayload[] = [];
   if (uploadedImagesStr) {
     try {
       uploadedImages = JSON.parse(uploadedImagesStr);
@@ -98,7 +108,7 @@ export async function createProduct(formData: FormData) {
       title,
       slug,
       type_id: typeId || null,
-      sku,
+      sku: null,
       price_inr: priceInr,
       price_aed: priceAed,
       description,
@@ -108,7 +118,8 @@ export async function createProduct(formData: FormData) {
       show_on_homepage: showOnHomepage,
       attributes,
       name: title,
-      product_code: (sku?.trim() || `P-${slug}`) as string,
+      // Temporary unique code; replaced with stable code derived from created id.
+      product_code: `TMP-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`,
       status: "approved",
     })
     .select("id")
@@ -116,6 +127,15 @@ export async function createProduct(formData: FormData) {
 
   if (error) return { error: error.message };
   const productId = data.id;
+  const productCode = buildProductCodeFromId(productId);
+  const sku = buildSkuFromId(productId);
+
+  const { error: productMetaError } = await supabase
+    .from("products")
+    .update({ product_code: productCode, sku })
+    .eq("id", productId);
+
+  if (productMetaError) return { error: productMetaError.message };
 
   // Link uploaded images to product
   if (uploadedImages.length > 0) {
@@ -126,14 +146,28 @@ export async function createProduct(formData: FormData) {
     for (let i = 0; i < uploadedImages.length; i++) {
       const img = uploadedImages[i];
       const finalStorageKey = keyMap.get(img.storage_key) || img.storage_key;
-
-      // Insert image record
+      const variantPayload = buildVariantPayloadFromFinalKey(finalStorageKey, {
+        alt_text: img.alt_text,
+        is_primary: img.is_primary,
+        image_tag: img.image_tag,
+        width: img.width,
+        height: img.height,
+      });
       await supabase.from("product_images").insert({
         product_id: productId,
-        storage_key: finalStorageKey,
-        alt_text: img.alt_text || null,
+        storage_key: variantPayload.storage_key,
+        image_url: variantPayload.image_url ?? null,
+        original_url: variantPayload.original_url ?? null,
+        thumb_url: variantPayload.thumb_url ?? null,
+        medium_url: variantPayload.medium_url ?? null,
+        large_url: variantPayload.large_url ?? null,
+        alt_text: variantPayload.alt_text || null,
+        image_tag: variantPayload.image_tag || null,
+        status: variantPayload.status ?? "ready",
+        width: variantPayload.width ?? null,
+        height: variantPayload.height ?? null,
         is_primary: img.is_primary,
-        show_on_homepage: img.show_on_homepage,
+        show_on_homepage: false,
         sort_order: i,
       });
     }
@@ -168,7 +202,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const title = formData.get("title") as string;
   const slug = (formData.get("slug") as string) || "";
   const typeId = (formData.get("type_id") as string) || null;
-  const sku = (formData.get("sku") as string) || null;
+  const sku = buildSkuFromId(id);
   const priceInr = parseFloat((formData.get("price_inr") as string) || "0");
   const priceAed = parseFloat((formData.get("price_aed") as string) || "0");
   const description = (formData.get("description") as string) || null;
@@ -176,6 +210,15 @@ export async function updateProduct(id: string, formData: FormData) {
   const featured = formData.get("featured") === "on";
   const newArrival = formData.get("new_arrival") === "on";
   const showOnHomepage = formData.get("show_on_homepage") === "on";
+  const uploadedImagesStr = formData.get("uploaded_images") as string | null;
+  let uploadedImages: UploadedImagePayload[] = [];
+  if (uploadedImagesStr) {
+    try {
+      uploadedImages = JSON.parse(uploadedImagesStr);
+    } catch {
+      // ignore
+    }
+  }
   const attributesStr = formData.get("attributes") as string | null;
   let attributes: Record<string, string | number | boolean> = {};
   if (attributesStr?.trim()) {
@@ -213,6 +256,58 @@ export async function updateProduct(id: string, formData: FormData) {
     .eq("id", id);
 
   if (error) return { error: error.message };
+
+  if (uploadedImages.length > 0) {
+    const tempKeys = uploadedImages.map((img) => img.storage_key);
+    const keyMap = await finalizeTempUploadsViaWorker(id, tempKeys);
+
+    const [{ data: maxOrder }, { count }] = await Promise.all([
+      supabase
+        .from("product_images")
+        .select("sort_order")
+        .eq("product_id", id)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("product_images")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", id),
+    ]);
+
+    let sortOrder = (maxOrder?.sort_order ?? -1) + 1;
+    const hasExistingImages = (count ?? 0) > 0;
+
+    for (let i = 0; i < uploadedImages.length; i++) {
+      const img = uploadedImages[i];
+      const finalStorageKey = keyMap.get(img.storage_key) || img.storage_key;
+      const variantPayload = buildVariantPayloadFromFinalKey(finalStorageKey, {
+        alt_text: img.alt_text,
+        is_primary: !hasExistingImages && i === 0,
+        image_tag: img.image_tag,
+        width: img.width,
+        height: img.height,
+      });
+      await supabase.from("product_images").insert({
+        product_id: id,
+        storage_key: variantPayload.storage_key,
+        image_url: variantPayload.image_url ?? null,
+        original_url: variantPayload.original_url ?? null,
+        thumb_url: variantPayload.thumb_url ?? null,
+        medium_url: variantPayload.medium_url ?? null,
+        large_url: variantPayload.large_url ?? null,
+        alt_text: variantPayload.alt_text || null,
+        image_tag: variantPayload.image_tag || null,
+        status: variantPayload.status ?? "ready",
+        width: variantPayload.width ?? null,
+        height: variantPayload.height ?? null,
+        is_primary: !hasExistingImages && i === 0,
+        show_on_homepage: false,
+        sort_order: sortOrder++,
+      });
+    }
+  }
+
   if (definitions.length > 0) {
     await saveProductAttributeValues(id, formData, definitions);
   }
@@ -325,6 +420,12 @@ export async function registerProductImage(
   const { error } = await supabase.from("product_images").insert({
     product_id: productId,
     storage_key: storageKey,
+    image_url: storageKey,
+    original_url: storageKey,
+    thumb_url: storageKey,
+    medium_url: storageKey,
+    large_url: storageKey,
+    status: "ready",
     sort_order: sortOrder,
     is_primary: isFirst,
   });
@@ -356,7 +457,12 @@ export async function setPrimaryProductImage(imageId: string, productId: string)
 export async function updateProductImage(
   imageId: string,
   productId: string,
-  payload: { alt_text?: string | null; show_on_homepage?: boolean }
+  payload: {
+    alt_text?: string | null;
+    show_on_homepage?: boolean;
+    image_tag?: string | null;
+    status?: "uploading" | "processing" | "ready" | "failed";
+  }
 ) {
   const supabase = createClient();
   if (payload.show_on_homepage === true) {
@@ -371,6 +477,58 @@ export async function updateProductImage(
     .eq("id", imageId)
     .eq("product_id", productId);
   if (error) return { error: error.message };
+  return {};
+}
+
+export async function replaceProductImageAsset(
+  imageId: string,
+  productId: string,
+  uploaded: UploadedImagePayload
+): Promise<{ error?: string }> {
+  const supabase = createClient();
+
+  const { data: existing, error: fetchErr } = await supabase
+    .from("product_images")
+    .select("storage_key")
+    .eq("id", imageId)
+    .eq("product_id", productId)
+    .single();
+  if (fetchErr || !existing) return { error: fetchErr?.message ?? "Image not found" };
+
+  const keyMap = await finalizeTempUploadsViaWorker(productId, [uploaded.storage_key]);
+  const finalStorageKey = keyMap.get(uploaded.storage_key) || uploaded.storage_key;
+  const variantPayload = buildVariantPayloadFromFinalKey(finalStorageKey, {
+    alt_text: uploaded.alt_text,
+    image_tag: uploaded.image_tag,
+    width: uploaded.width,
+    height: uploaded.height,
+  });
+
+  const { error: updateErr } = await supabase
+    .from("product_images")
+    .update({
+      storage_key: variantPayload.storage_key,
+      image_url: variantPayload.image_url ?? null,
+      original_url: variantPayload.original_url ?? null,
+      thumb_url: variantPayload.thumb_url ?? null,
+      medium_url: variantPayload.medium_url ?? null,
+      large_url: variantPayload.large_url ?? null,
+      alt_text: variantPayload.alt_text || null,
+      image_tag: variantPayload.image_tag || null,
+      status: "ready",
+      width: variantPayload.width ?? null,
+      height: variantPayload.height ?? null,
+    })
+    .eq("id", imageId)
+    .eq("product_id", productId);
+  if (updateErr) return { error: updateErr.message };
+
+  try {
+    await deleteStorageKeysViaWorker([existing.storage_key]);
+  } catch {
+    // best effort cleanup
+  }
+
   return {};
 }
 

@@ -67,6 +67,18 @@ export function AdminShell({
             Attributes
           </Link>
           <Link
+            href="/about"
+            className="block px-3 py-2 text-sm text-stone-700 hover:bg-stone-100 rounded"
+          >
+            About Content
+          </Link>
+          <Link
+            href="/about/videos"
+            className="block px-3 py-2 text-sm text-stone-700 hover:bg-stone-100 rounded"
+          >
+            About Videos
+          </Link>
+          <Link
             href="/settings"
             className="block px-3 py-2 text-sm text-stone-700 hover:bg-stone-100 rounded"
           >

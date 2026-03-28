@@ -61,6 +61,16 @@ export default async function InformationPage() {
               >
                 WhatsApp us
               </a>
+              {whatsappBulkHref && (
+                <a
+                  href={whatsappBulkHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex flex-1 items-center justify-center px-4 py-2.5 text-sm font-medium border border-rim text-foreground rounded-sm hover:bg-surface"
+                >
+                  WhatsApp — wholesale / bulk
+                </a>
+              )}
             </div>
           )}
 
@@ -89,6 +99,16 @@ export default async function InformationPage() {
               <li>Typical lead time: 3–7 business days depending on quantity</li>
               <li>Payment via bank transfer / UPI / supported international options</li>
             </ul>
+            {whatsappBulkHref && (
+              <a
+                href={whatsappBulkHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-full sm:w-auto items-center justify-center mt-4 px-4 py-2.5 text-sm font-medium bg-green-600 text-white rounded-sm hover:bg-green-700"
+              >
+                WhatsApp for wholesale pricing
+              </a>
+            )}
           </div>
         </section>
 
@@ -120,6 +140,50 @@ export default async function InformationPage() {
               Dry clean recommended. Store folded with a soft cloth between layers, away from direct
               sunlight.
             </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium text-foreground tracking-[0.16em] uppercase">
+            Frequently asked questions
+          </h2>
+          <div className="border border-rim rounded-sm bg-surface/70 divide-y divide-rim text-sm text-muted">
+            <details className="group px-4 py-3">
+              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden font-medium text-foreground flex justify-between items-center gap-2">
+                Do you ship internationally?
+                <span className="text-muted group-open:rotate-180 transition-transform shrink-0">▼</span>
+              </summary>
+              <p className="mt-2 pr-6">
+                We ship within India and to select international destinations. Share your city or country on WhatsApp and we will confirm options and timelines.
+              </p>
+            </details>
+            <details className="group px-4 py-3">
+              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden font-medium text-foreground flex justify-between items-center gap-2">
+                What is the minimum order for bulk?
+                <span className="text-muted group-open:rotate-180 transition-transform shrink-0">▼</span>
+              </summary>
+              <p className="mt-2 pr-6">
+                We typically work from around 10 pieces (mixed designs possible). Exact terms depend on stock and styles — message us with your requirement.
+              </p>
+            </details>
+            <details className="group px-4 py-3">
+              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden font-medium text-foreground flex justify-between items-center gap-2">
+                Can I get more photos or a video before buying?
+                <span className="text-muted group-open:rotate-180 transition-transform shrink-0">▼</span>
+              </summary>
+              <p className="mt-2 pr-6">
+                Yes. WhatsApp us with the product link or SKU and we will share additional photos or a short video where available.
+              </p>
+            </details>
+            <details className="group px-4 py-3">
+              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden font-medium text-foreground flex justify-between items-center gap-2">
+                What is your return or exchange policy?
+                <span className="text-muted group-open:rotate-180 transition-transform shrink-0">▼</span>
+              </summary>
+              <p className="mt-2 pr-6">
+                Because each saree is often unique, returns are handled case by case. Ask on WhatsApp before ordering if you need clarity for your situation.
+              </p>
+            </details>
           </div>
         </section>
 

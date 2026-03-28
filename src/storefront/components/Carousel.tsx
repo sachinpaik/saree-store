@@ -28,7 +28,10 @@ export function Carousel({
 
   if (n === 0) {
     return (
-      <section className="aspect-[4/3] md:aspect-[21/9] bg-stone-100 flex items-center justify-center" aria-label="Carousel">
+      <section
+        className="aspect-[8/3] md:aspect-[14/3] bg-stone-100 flex items-center justify-center"
+        aria-label="Carousel"
+      >
         <span className="text-stone-400 text-sm">No images</span>
       </section>
     );
@@ -36,7 +39,7 @@ export function Carousel({
 
   return (
     <section className="relative w-full overflow-hidden bg-stone-100" aria-label="Featured images">
-      <div className="aspect-[4/3] md:aspect-[21/9] relative">
+      <div className="aspect-[8/3] md:aspect-[14/3] relative">
         {imageUrls.map((url, i) => (
           <div
             key={`${i}-${url}`}
@@ -44,17 +47,26 @@ export function Carousel({
             style={{ opacity: i === index ? 1 : 0, zIndex: i === index ? 1 : 0 }}
             aria-hidden={i !== index}
           >
-            <Image src={url} alt="" fill className="object-cover" sizes="100vw" unoptimized />
+            <Image
+              src={url}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="100vw"
+              loading={i === 0 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              unoptimized
+            />
           </div>
         ))}
       </div>
       {overlayContent && (
-        <div className="absolute left-4 bottom-12 md:left-8 md:bottom-14 z-10 max-w-[85%] md:max-w-sm">
+        <div className="absolute left-4 bottom-10 md:left-8 md:bottom-10 z-10 max-w-[85%] md:max-w-sm">
           {overlayContent}
         </div>
       )}
       {n > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-20">
           {imageUrls.map((_, i) => (
             <button
               key={i}
