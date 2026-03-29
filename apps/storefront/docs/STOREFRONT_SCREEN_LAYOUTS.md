@@ -247,8 +247,8 @@ ASCII wireframes for **how each page is composed** in the browser. Spacing is ap
 
 | Screen    | Primary files |
 |-----------|----------------|
-| Shell     | `app/layout.tsx`, `components/Header.tsx`, `HeaderInner.tsx`, `Footer.tsx` |
-| Home      | `app/page.tsx`, `src/storefront/pages/HomePage.tsx`, `src/storefront/components/Carousel.tsx` |
-| Listing   | `app/kanchipuram-silks/page.tsx`, `src/storefront/pages/ProductListPage.tsx`, `ProductGrid.tsx`, `ProductCard.tsx` |
-| Detail    | `app/saree/[slug]/page.tsx`, `src/storefront/pages/ProductDetailPage.tsx`, `ProductGallery.tsx` |
+| Shell     | `app/layout.tsx`, `src/ui/shell/Header.tsx`, `HeaderInner.tsx`, `Footer.tsx` |
+| Home      | `app/page.tsx`, `apps/storefront/src/ui/pages/HomePage.tsx`, `apps/storefront/src/ui/components/Carousel.tsx` |
+| Listing   | `app/kanchipuram-silks/page.tsx`, `apps/storefront/src/ui/pages/ProductListPage.tsx`, `ProductGrid.tsx`, `ProductCard.tsx` |
+| Detail    | `app/saree/[slug]/page.tsx`, `apps/storefront/src/ui/pages/ProductDetailPage.tsx`, `ProductGallery.tsx` |
 | Info      | `app/information/page.tsx` |

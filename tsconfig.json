@@ -24,6 +24,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@/storefront": [
+        "./apps/storefront/src/index.ts"
+      ],
+      "@/storefront/*": [
+        "./apps/storefront/src/*"
       ]
     },
     "target": "ES2017"

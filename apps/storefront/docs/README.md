@@ -1,6 +1,6 @@
 # Storefront documentation
 
-Documents in this folder apply only to **`apps/storefront`** and the shared module **`src/storefront`**.
+Documents in this folder apply only to **`apps/storefront`** and its app-local storefront layer in **`apps/storefront/src`**.
 
 | Document | Description |
 |----------|-------------|

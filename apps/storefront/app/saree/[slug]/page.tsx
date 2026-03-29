@@ -7,7 +7,7 @@ import {
   getApprovedProducts,
   getStoreSettings,
   getProductSpecsForDisplay,
-} from "storefront";
+} from "@/storefront";
 
 type Props = { params: Promise<{ slug: string }> };
 

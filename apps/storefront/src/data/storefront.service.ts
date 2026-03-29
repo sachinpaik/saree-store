@@ -6,11 +6,11 @@ import type {
   ProductRow,
   SiteSettings,
   StoreSettings,
-} from "../types/storefront.types";
-import { getCardImageUrl, getVisibleProductImages } from "../../lib/product-image";
+} from "../domain/types/storefront.types";
+import { getCardImageUrl, getVisibleProductImages } from "./product-image";
 
 const SELECT =
-  "id, slug, title, sku, price_inr, price_aed, description, stock_status, show_on_homepage, attributes, product_images(id, storage_key, image_url, original_url, thumb_url, medium_url, large_url, sort_order, alt_text, image_tag, status, width, height, is_primary, show_on_homepage)";
+  "id, slug, title, sku, price_inr, price_aed, description, stock_status, featured, show_on_homepage, attributes, product_images(id, storage_key, image_url, original_url, thumb_url, medium_url, large_url, sort_order, alt_text, image_tag, status, width, height, is_primary, show_on_homepage)";
 
 function rowToProduct(row: ProductRow): Product {
   const images = (row.product_images ?? [])
@@ -44,6 +44,7 @@ function rowToProduct(row: ProductRow): Product {
     price_aed: row.price_aed ?? 0,
     description: row.description ?? null,
     stock_status: row.stock_status ?? "in_stock",
+    featured: row.featured ?? false,
     show_on_homepage: row.show_on_homepage ?? false,
     attributes: row.attributes ?? undefined,
   };
@@ -95,11 +96,20 @@ export async function getApprovedProductBySlug(slug: string): Promise<Product | 
 }
 
 /**
- * Featured products for homepage (show_on_homepage, limited).
+ * Featured products for homepage.
+ * Uses featured + not discontinued.
  */
 export async function getFeaturedProducts(limit: number): Promise<Product[]> {
-  const all = await getApprovedProducts();
-  return all.filter((p) => p.show_on_homepage).slice(0, limit);
+  const supabase = createStorefrontSupabaseClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(SELECT)
+    .eq("featured", true)
+    .eq("is_discontinued", false)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as ProductRow[]).map(rowToProduct);
 }
 
 /**

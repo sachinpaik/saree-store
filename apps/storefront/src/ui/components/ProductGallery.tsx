@@ -8,8 +8,8 @@ import {
   getThumbnailImageUrl,
   getVisibleProductImages,
   getZoomImageUrl,
-} from "../../lib/product-image";
-import type { ProductImage } from "../types/storefront.types";
+} from "../../data/product-image";
+import type { ProductImage } from "../../domain/types/storefront.types";
 
 export function ProductGallery({ images, title }: { images: ProductImage[]; title: string }) {
   const [index, setIndex] = useState(0);
@@ -22,7 +22,7 @@ export function ProductGallery({ images, title }: { images: ProductImage[]; titl
 
   if (list.length === 0) {
     return (
-      <div className="aspect-[3/4] bg-stone-100 rounded-sm flex items-center justify-center text-stone-400 text-sm">
+      <div className="flex aspect-[4/5] items-center justify-center rounded-[3px] bg-stone-100 text-sm text-stone-400">
         No image
       </div>
     );
@@ -33,7 +33,7 @@ export function ProductGallery({ images, title }: { images: ProductImage[]; titl
       <button
         type="button"
         onClick={() => setFullscreen(true)}
-        className="relative aspect-[3/4] w-full bg-stone-100 rounded-sm overflow-hidden text-left"
+        className="relative aspect-[4/5] w-full overflow-hidden rounded-[3px] bg-stone-100 text-left"
         aria-label="Open fullscreen image"
       >
         <Image
@@ -54,8 +54,8 @@ export function ProductGallery({ images, title }: { images: ProductImage[]; titl
               key={img.id}
               type="button"
               onClick={() => setIndex(i)}
-              className={`relative w-14 h-14 shrink-0 rounded overflow-hidden border-2 ${
-                i === index ? "border-stone-800" : "border-transparent"
+              className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[2px] border ${
+                i === index ? "border-[#c9962a]" : "border-transparent"
               }`}
               aria-label={`Image ${i + 1}`}
             >

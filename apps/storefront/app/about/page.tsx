@@ -1,4 +1,4 @@
-import { AboutPage, getAboutContent, getAboutVideos } from "storefront";
+import { AboutPage, getAboutContent, getAboutVideos, getStoreSettings } from "@/storefront";
 
 export const metadata = {
   title: "About Silk Manufacturing",
@@ -8,10 +8,11 @@ export const metadata = {
 export const dynamic = "force-static";
 
 export default async function Page() {
-  const [content, videos] = await Promise.all([
+  const [content, videos, settings] = await Promise.all([
     getAboutContent().catch(() => null),
     getAboutVideos().catch(() => []),
+    getStoreSettings().catch(() => null),
   ]);
 
-  return <AboutPage content={content} videos={videos} />;
+  return <AboutPage content={content} videos={videos} settings={settings} />;
 }

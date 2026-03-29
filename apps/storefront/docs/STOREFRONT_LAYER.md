@@ -7,22 +7,22 @@
 ## Folder structure
 
 ```
-src/storefront/
-├── index.ts                    # Public exports (pages, service, types)
-├── types/
-│   └── storefront.types.ts     # Product, ProductImage, ProductRow, SiteSettings, StoreSettings
-├── services/
-│   ├── supabase.client.ts       # Cookie-less Supabase client (build-time safe)
-│   └── storefront.service.ts    # getApprovedProducts, getApprovedProductSlugs, getApprovedProductBySlug, etc.
-├── components/
-│   ├── ProductCard.tsx
-│   ├── ProductGrid.tsx
-│   ├── Carousel.tsx
-│   └── ProductGallery.tsx
-└── pages/
-    ├── HomePage.tsx             # Featured products + carousel
-    ├── ProductListPage.tsx      # All approved products
-    └── ProductDetailPage.tsx    # Product detail + gallery + specs + WhatsApp/Call
+apps/storefront/src/
+├── index.ts                    # Public exports used by app routes
+├── data/
+│   ├── supabase.client.ts      # Cookie-less Supabase client (build-time safe)
+│   ├── storefront.service.ts   # Storefront queries and mappers
+│   └── product-image.ts        # Public image URL helpers
+├── domain/
+│   ├── types/
+│   │   └── storefront.types.ts # Product, ProductImage, ProductRow, SiteSettings, StoreSettings
+│   └── utils/
+│       ├── format-price.ts
+│       └── stock.ts
+└── ui/
+    ├── components/
+    ├── pages/
+    └── shell/
 ```
 
 **App routes (use storefront layer):**
@@ -37,17 +37,18 @@ src/storefront/
 
 | File | Purpose |
 |------|--------|
-| `src/storefront/types/storefront.types.ts` | Product, ProductImage, ProductRow, SiteSettings, StoreSettings |
-| `src/storefront/services/supabase.client.ts` | `createStorefrontSupabaseClient()` – no cookies, build-time safe |
-| `src/storefront/services/storefront.service.ts` | `getApprovedProducts`, `getApprovedProductSlugs`, `getApprovedProductBySlug`, `getFeaturedProducts`, `getCarouselImageUrls`, `getSiteSettings`, `getStoreSettings`, `getProductSpecsForDisplay`, `getPublicImageUrl` |
-| `src/storefront/components/ProductCard.tsx` | Card with image (R2 URL), title, price, link to detail |
-| `src/storefront/components/ProductGrid.tsx` | Grid of ProductCards |
-| `src/storefront/components/Carousel.tsx` | Client carousel for homepage (imageUrls, rotationSeconds) |
-| `src/storefront/components/ProductGallery.tsx` | Client gallery (main image + thumbnails) |
-| `src/storefront/pages/HomePage.tsx` | Carousel + featured ProductGrid |
-| `src/storefront/pages/ProductListPage.tsx` | ProductGrid of all approved products |
-| `src/storefront/pages/ProductDetailPage.tsx` | Gallery, title, price, description, specs, WhatsApp/Call |
-| `src/storefront/index.ts` | Exports for app routes |
+| `apps/storefront/src/domain/types/storefront.types.ts` | Product, ProductImage, ProductRow, SiteSettings, StoreSettings |
+| `apps/storefront/src/data/supabase.client.ts` | `createStorefrontSupabaseClient()` – no cookies, build-time safe |
+| `apps/storefront/src/data/storefront.service.ts` | `getApprovedProducts`, `getApprovedProductSlugs`, `getApprovedProductBySlug`, `getFeaturedProducts`, `getCarouselImageUrls`, `getSiteSettings`, `getStoreSettings`, `getProductSpecsForDisplay`, `getPublicImageUrl` |
+| `apps/storefront/src/data/product-image.ts` | Product image URL selection and fallback rules |
+| `apps/storefront/src/ui/components/ProductCard.tsx` | Card with image (R2 URL), title, price, link to detail |
+| `apps/storefront/src/ui/components/ProductGrid.tsx` | Grid of ProductCards |
+| `apps/storefront/src/ui/components/Carousel.tsx` | Client carousel for homepage (imageUrls, rotationSeconds) |
+| `apps/storefront/src/ui/components/ProductGallery.tsx` | Client gallery (main image + thumbnails) |
+| `apps/storefront/src/ui/pages/HomePage.tsx` | Carousel + featured ProductGrid |
+| `apps/storefront/src/ui/pages/ProductListPage.tsx` | ProductGrid of all approved products |
+| `apps/storefront/src/ui/pages/ProductDetailPage.tsx` | Gallery, title, price, description, specs, WhatsApp/Call |
+| `apps/storefront/src/index.ts` | Exports for app routes |
 | `src/app/(store)/page.tsx` | Uses storefront only (force-static) |
 | `src/app/(store)/kanchipuram-silks/page.tsx` | Uses storefront only (force-static) |
 | `src/app/(store)/saree/[slug]/page.tsx` | Uses storefront only; `generateStaticParams`, `dynamicParams = false` |

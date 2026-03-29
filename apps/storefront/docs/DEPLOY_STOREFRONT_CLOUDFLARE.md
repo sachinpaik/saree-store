@@ -32,7 +32,7 @@ A dedicated app lives at `apps/storefront/`:
 
 - Own `next.config.mjs` with `output: 'export'`
 - Pages: `app/page.tsx` (home), `app/kanchipuram-silks/page.tsx`, `app/saree/[slug]/page.tsx`, `app/information/page.tsx`
-- Reuses the existing `src/storefront` module (path alias `storefront`); data is fetched from Supabase at build time
+- Uses the app-local `src/` storefront layer (path alias `@/storefront`); data is fetched from Supabase at build time
 - Build: `cd apps/storefront && npm run build` → output in `apps/storefront/out`
 
 See `apps/storefront/README.md` for local dev and Cloudflare Pages deploy steps.

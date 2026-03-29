@@ -1,5 +1,5 @@
 import { ProductCard } from "./ProductCard";
-import type { Product } from "../types/storefront.types";
+import type { Product } from "../../domain/types/storefront.types";
 
 export function ProductGrid({ products }: { products: Product[] }) {
   if (products.length === 0) {

@@ -4,7 +4,7 @@ import {
   getCarouselImageUrls,
   getSiteSettings,
   getStoreSettings,
-} from "storefront";
+} from "@/storefront";
 
 const FEATURED_LIMIT = 8;
 const CAROUSEL_LIMIT = 20;
@@ -26,6 +26,7 @@ export default async function Page() {
       carouselImageUrls={carouselImageUrls}
       rotationSeconds={rotationSeconds ?? undefined}
       whatsappNumber={storeSettings?.whatsapp_number ?? null}
+      callNumber={storeSettings?.call_number ?? null}
     />
   );
 }

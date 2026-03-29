@@ -31,6 +31,7 @@ export type Product = {
   price_aed: number;
   description: string | null;
   stock_status: string;
+  featured?: boolean;
   show_on_homepage?: boolean;
   attributes?: Record<string, string | number | boolean>;
 };
@@ -45,6 +46,7 @@ export type ProductRow = {
   price_aed?: number;
   description?: string | null;
   stock_status?: string;
+  featured?: boolean;
   show_on_homepage?: boolean;
   attributes?: Record<string, string | number | boolean>;
   product_images?: {

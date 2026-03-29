@@ -4,7 +4,7 @@
 **Stack:** Next.js App Router, static export (`output: 'export'`), Supabase-backed build-time data  
 **Core principle:** The saree is merchandised on the site; the sale completes on WhatsApp or phone. Every screen should surface a clear, low-friction path to contact.
 
-**Last reviewed:** March 2025 (aligned with `apps/storefront` + `src/storefront`)
+**Last reviewed:** March 2025 (aligned with `apps/storefront` + `apps/storefront/src`)
 
 ---
 
@@ -226,11 +226,11 @@ Static params are generated for product slugs at build time (`generateStaticPara
 |------|------|
 | Layout shell | `apps/storefront/app/layout.tsx` |
 | Home route | `apps/storefront/app/page.tsx` |
-| Home UI | `src/storefront/pages/HomePage.tsx` |
-| Header client | `apps/storefront/components/HeaderInner.tsx` |
-| Footer | `apps/storefront/components/Footer.tsx` |
-| Listing | `src/storefront/pages/ProductListPage.tsx` |
-| Card | `src/storefront/components/ProductCard.tsx` |
-| Detail | `src/storefront/pages/ProductDetailPage.tsx` |
+| Home UI | `apps/storefront/src/ui/pages/HomePage.tsx` |
+| Header client | `apps/storefront/src/ui/shell/HeaderInner.tsx` |
+| Footer | `apps/storefront/src/ui/shell/Footer.tsx` |
+| Listing | `apps/storefront/src/ui/pages/ProductListPage.tsx` |
+| Card | `apps/storefront/src/ui/components/ProductCard.tsx` |
+| Detail | `apps/storefront/src/ui/pages/ProductDetailPage.tsx` |
 | Information | `apps/storefront/app/information/page.tsx` |
 | Tokens | `apps/storefront/app/globals.css`, `apps/storefront/tailwind.config.ts` |

@@ -1,4 +1,4 @@
-import { getPublicImageUrl, getSiteSettings, getStoreSettings } from "storefront";
+import { getPublicImageUrl, getSiteSettings, getStoreSettings } from "@/src/data/storefront.service";
 import { HeaderInner } from "./HeaderInner";
 
 export async function Header() {

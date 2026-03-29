@@ -26,11 +26,11 @@
       "@/*": [
         "./*"
       ],
-      "storefront": [
-        "../../src/storefront"
+      "@/storefront": [
+        "./src/index.ts"
       ],
-      "storefront/*": [
-        "../../src/storefront/*"
+      "@/storefront/*": [
+        "./src/*"
       ]
     }
   },
@@ -38,8 +38,6 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "../../src/storefront/**/*.ts",
-    "../../src/storefront/**/*.tsx",
     ".next/types/**/*.ts"
   ],
   "exclude": [

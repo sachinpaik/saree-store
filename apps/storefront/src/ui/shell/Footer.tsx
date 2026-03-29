@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getPublicImageUrl, getSiteSettings, getStoreSettings } from "storefront";
+import { getPublicImageUrl, getSiteSettings, getStoreSettings } from "@/src/data/storefront.service";
 
 export async function Footer() {
   const [siteSettings, storeSettings] = await Promise.all([
@@ -31,40 +31,51 @@ export async function Footer() {
   const callHref = callNumber ? `tel:${callNumber.replace(/\s/g, "")}` : null;
 
   return (
-    <footer className="mt-auto border-t border-rim bg-surface">
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Brand identity */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-1">
-            {logoUrl ? (
-              <span className="relative h-10 w-10 shrink-0 rounded-sm overflow-hidden border border-rim bg-white">
-                <Image src={logoUrl} alt={businessName} fill className="object-contain" sizes="40px" unoptimized />
-              </span>
-            ) : null}
-            <p className="font-serif text-foreground text-xl tracking-wide">
-              {businessName}
-            </p>
-          </div>
-          <p className="text-muted text-sm mt-1">
-            Premium Kanchipuram silks, direct from weavers.
-          </p>
-          <p className="text-muted text-sm">
-            Retail &amp; wholesale welcome.
-          </p>
-        </div>
-
-        {/* 3-column grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-10">
-          {/* Collections */}
+    <footer className="mt-auto border-t border-[#2c1a11] bg-[#1a1008] text-[#faf7f2]">
+      <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1.1fr]">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-muted uppercase mb-3">
+            <div className="mb-4 flex items-center gap-3">
+              {logoUrl ? (
+                <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-[#c9962a]/35 bg-white/95">
+                  <Image src={logoUrl} alt={businessName} fill className="object-contain" sizes="48px" unoptimized />
+                </span>
+              ) : null}
+              <div>
+                <p className="font-serif text-2xl uppercase tracking-[0.14em] text-white">
+                  {businessName}
+                </p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.28em] text-[#e8c96e]/70">
+                  Kanchipuram Silks
+                </p>
+              </div>
+            </div>
+            <p className="max-w-sm text-sm leading-7 text-white/58">
+              Luxury silk presentation for retail, boutique, and international buyers, with direct
+              enquiry support and a curated product-first experience.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <span className="rounded-full border border-[#c9962a]/30 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[#ecd8aa]">
+                UAE
+              </span>
+              <span className="rounded-full border border-[#c9962a]/30 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[#ecd8aa]">
+                India
+              </span>
+              <span className="rounded-full border border-[#c9962a]/30 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[#ecd8aa]">
+                Wholesale welcome
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-4 text-[10px] uppercase tracking-[0.22em] text-[#e8c96e]">
               Collections
             </p>
-            <ul className="space-y-2 text-sm text-muted">
+            <ul className="space-y-3 text-sm text-white/58">
               <li>
                 <Link
                   href="/kanchipuram-silks"
-                  className="hover:text-foreground transition-colors"
+                  className="transition-colors hover:text-white"
                 >
                   Kanchipuram Silks
                 </Link>
@@ -72,21 +83,20 @@ export async function Footer() {
             </ul>
           </div>
 
-          {/* Quick Links */}
           <div>
-            <p className="text-xs font-semibold tracking-widest text-muted uppercase mb-3">
+            <p className="mb-4 text-[10px] uppercase tracking-[0.22em] text-[#e8c96e]">
               Quick Links
             </p>
-            <ul className="space-y-2 text-sm text-muted">
+            <ul className="space-y-3 text-sm text-white/58">
               <li>
-                <Link href="/" className="hover:text-foreground transition-colors">
+                <Link href="/" className="transition-colors hover:text-white">
                   Home
                 </Link>
               </li>
               <li>
                 <Link
                   href="/information"
-                  className="hover:text-foreground transition-colors"
+                  className="transition-colors hover:text-white"
                 >
                   Information
                 </Link>
@@ -94,7 +104,7 @@ export async function Footer() {
               <li>
                 <Link
                   href="/about"
-                  className="hover:text-foreground transition-colors"
+                  className="transition-colors hover:text-white"
                 >
                   Silk Manufacturing
                 </Link>
@@ -105,7 +115,7 @@ export async function Footer() {
                     href={whatsappBulkHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-foreground transition-colors"
+                    className="transition-colors hover:text-white"
                   >
                     Bulk Enquiries
                   </a>
@@ -114,20 +124,19 @@ export async function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
-            <p className="text-xs font-semibold tracking-widest text-muted uppercase mb-3">
+            <p className="mb-4 text-[10px] uppercase tracking-[0.22em] text-[#e8c96e]">
               Contact
             </p>
-            <ul className="space-y-2.5 text-sm text-muted">
+            <ul className="space-y-3 text-sm text-white/58">
               {callHref && callNumber && (
                 <li>
                   <a
                     href={callHref}
-                    className="flex items-center gap-2 hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 transition-colors hover:text-white"
                   >
                     <svg
-                      className="w-4 h-4 shrink-0 text-muted/60"
+                      className="h-4 w-4 shrink-0 text-[#e8c96e]/80"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -150,10 +159,10 @@ export async function Footer() {
                     href={whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 transition-colors hover:text-white"
                   >
                     <svg
-                      className="w-4 h-4 shrink-0 text-green-600"
+                      className="h-4 w-4 shrink-0 text-green-500"
                       viewBox="0 0 24 24"
                       fill="currentColor"
                       aria-hidden="true"
@@ -171,10 +180,10 @@ export async function Footer() {
                     href={instagramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 transition-colors hover:text-white"
                   >
                     <svg
-                      className="w-4 h-4 shrink-0 text-muted/60"
+                      className="h-4 w-4 shrink-0 text-[#e8c96e]/80"
                       viewBox="0 0 24 24"
                       fill="currentColor"
                       aria-hidden="true"
@@ -189,9 +198,8 @@ export async function Footer() {
           </div>
         </div>
 
-        {/* Bottom copyright */}
-        <div className="pt-6 border-t border-rim">
-          <p className="text-center text-xs text-muted/70">
+        <div className="mt-10 border-t border-white/8 pt-6">
+          <p className="text-center text-xs uppercase tracking-[0.12em] text-white/32">
             © {new Date().getFullYear()} {businessName}. All rights reserved.
           </p>
         </div>

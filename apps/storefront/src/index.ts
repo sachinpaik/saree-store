@@ -1,7 +1,7 @@
-export { HomePage } from "./pages/HomePage";
-export { ProductListPage } from "./pages/ProductListPage";
-export { ProductDetailPage } from "./pages/ProductDetailPage";
-export { AboutPage } from "./pages/AboutPage";
+export { HomePage } from "./ui/pages/HomePage";
+export { ProductListPage } from "./ui/pages/ProductListPage";
+export { ProductDetailPage } from "./ui/pages/ProductDetailPage";
+export { AboutPage } from "./ui/pages/AboutPage";
 export {
   getApprovedProducts,
   getApprovedProductSlugs,
@@ -14,7 +14,7 @@ export {
   getAboutVideos,
   getProductSpecsForDisplay,
   getPublicImageUrl,
-} from "./services/storefront.service";
+} from "./data/storefront.service";
 export type {
   Product,
   ProductImage,
@@ -22,4 +22,4 @@ export type {
   SiteSettings,
   AboutContent,
   AboutVideo,
-} from "./types/storefront.types";
+} from "./domain/types/storefront.types";
